@@ -44,46 +44,34 @@ double? evaluateExpression(String input) {
       return null;
     }
   }
+  final parser = _ExprParser(tokens);
+  return parser.parseFull();
+}
+
+class _ExprParser {
+  final List<String> tokens;
   var pos = 0;
+  _ExprParser(this.tokens);
+
   String? peek() => pos < tokens.length ? tokens[pos] : null;
   String eat() => tokens[pos++];
 
-  double? parseAtom() {
-    final t = peek();
-    if (t == null) return null;
-    if (t == '(') {
-      eat();
-      final v = parseExpr();
-      if (v == null || peek() != ')') return null;
-      eat();
-      return v;
-    }
-    return double.tryParse(eat());
+  double? parseFull() {
+    final result = parseExpr();
+    if (result == null || pos != tokens.length) return null;
+    return result;
   }
 
-  double? parseUnary() {
-    if (peek() == '-') {
-      eat();
-      final v = parseUnary();
-      return v == null ? null : -v;
+  double? parseExpr() {
+    var left = parseTerm();
+    if (left == null) return null;
+    while (peek() == '+' || peek() == '-') {
+      final op = eat();
+      final right = parseTerm();
+      if (right == null) return null;
+      left = (op == '+') ? left + right : left - right;
     }
-    if (peek() == '+') {
-      eat();
-      return parseUnary();
-    }
-    return parseAtom();
-  }
-
-  double? parsePower() {
-    final base = parseUnary();
-    if (base == null) return null;
-    if (peek() == '^') {
-      eat();
-      final exp = parsePower();
-      if (exp == null) return null;
-      return math.pow(base, exp).toDouble();
-    }
-    return base;
+    return left;
   }
 
   double? parseTerm() {
@@ -106,21 +94,43 @@ double? evaluateExpression(String input) {
     return left;
   }
 
-  double? parseExpr() {
-    var left = parseTerm();
-    if (left == null) return null;
-    while (peek() == '+' || peek() == '-') {
-      final op = eat();
-      final right = parseTerm();
-      if (right == null) return null;
-      left = (op == '+') ? left + right : left - right;
+  double? parsePower() {
+    final base = parseUnary();
+    if (base == null) return null;
+    if (peek() == '^') {
+      eat();
+      final exp = parsePower();
+      if (exp == null) return null;
+      return math.pow(base, exp).toDouble();
     }
-    return left;
+    return base;
   }
 
-  final result = parseExpr();
-  if (result == null || pos != tokens.length) return null;
-  return result;
+  double? parseUnary() {
+    if (peek() == '-') {
+      eat();
+      final v = parseUnary();
+      return v == null ? null : -v;
+    }
+    if (peek() == '+') {
+      eat();
+      return parseUnary();
+    }
+    return parseAtom();
+  }
+
+  double? parseAtom() {
+    final t = peek();
+    if (t == null) return null;
+    if (t == '(') {
+      eat();
+      final v = parseExpr();
+      if (v == null || peek() != ')') return null;
+      eat();
+      return v;
+    }
+    return double.tryParse(eat());
+  }
 }
 
 class ApprovalRequest {
