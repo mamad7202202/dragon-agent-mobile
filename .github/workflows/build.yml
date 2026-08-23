@@ -45,8 +45,8 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Launcher icons
-        run: dart run flutter_launcher_icons
+      - name: Launcher icons (Android)
+        run: dart run flutter_launcher_icons -f flutter_launcher_android.yaml
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos
@@ -92,8 +92,8 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Launcher icons
-        run: dart run flutter_launcher_icons
+      - name: Launcher icons (iOS)
+        run: dart run flutter_launcher_icons -f flutter_launcher_ios.yaml
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos
