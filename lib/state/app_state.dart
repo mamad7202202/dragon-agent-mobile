@@ -596,12 +596,12 @@ class AppState extends ChangeNotifier {
   }
 
   List<Map<String, Object>> _activeToolDefs() {
-    final defs = List<Map<String, Object>>.from(_extraToolDefs);
+    final defs = List<Map<String, Object>>.from(extraToolDefs);
     if (!settings.memoryEnabled) return defs;
     if (settings.mode == MemoryMode.outline) {
-      defs.addAll(_outlineToolDefs);
+      defs.addAll(outlineToolDefs);
     } else {
-      defs.addAll(_memoryToolDefs);
+      defs.addAll(memoryToolDefs);
     }
     return defs;
   }
@@ -752,16 +752,42 @@ class AppState extends ChangeNotifier {
     String? peek() => pos < tokens.length ? tokens[pos] : null;
     String eat() => tokens[pos++];
 
-    double? parseExpr() {
-      var left = parseTerm();
-      if (left == null) return null;
-      while (peek() == '+' || peek() == '-') {
-        final op = eat();
-        final right = parseTerm();
-        if (right == null) return null;
-        left = op == '+' ? left + right : left - right;
+    double? parseAtom() {
+      final t = peek();
+      if (t == null) return null;
+      if (t == '(') {
+        eat();
+        final v = parseExpr();
+        if (v == null || peek() != ')') return null;
+        eat();
+        return v;
       }
-      return left;
+      return double.tryParse(eat());
+    }
+
+    double? parseUnary() {
+      if (peek() == '-') {
+        eat();
+        final v = parseUnary();
+        return v == null ? null : -v;
+      }
+      if (peek() == '+') {
+        eat();
+        return parseUnary();
+      }
+      return parseAtom();
+    }
+
+    double? parsePower() {
+      final base = parseUnary();
+      if (base == null) return null;
+      if (peek() == '^') {
+        eat();
+        final exp = parsePower();
+        if (exp == null) return null;
+        return math.pow(base, exp).toDouble();
+      }
+      return base;
     }
 
     double? parseTerm() {
@@ -784,43 +810,16 @@ class AppState extends ChangeNotifier {
       return left;
     }
 
-    double? parsePower() {
-      final base = parseUnary();
-      if (base == null) return null;
-      if (peek() == '^') {
-        eat();
-        final exp = parsePower();
-        if (exp == null) return null;
-        return math.pow(base, exp).toDouble();
+    double? parseExpr() {
+      var left = parseTerm();
+      if (left == null) return null;
+      while (peek() == '+' || peek() == '-') {
+        final op = eat();
+        final right = parseTerm();
+        if (right == null) return null;
+        left = (op == '+') ? left + right : left - right;
       }
-      return base;
-    }
-
-    double? parseUnary() {
-      if (peek() == '-') {
-        eat();
-        final v = parseUnary();
-        return v == null ? null : -v;
-      }
-      if (peek() == '+') {
-        eat();
-        return parseUnary();
-      }
-      return parseAtom();
-    }
-
-    double? parseAtom() {
-      final t = peek();
-      if (t == null) return null;
-      if (t == '(') {
-        eat();
-        final v = parseExpr();
-        if (v == null || peek() != ')') return null;
-        eat();
-        return v;
-      }
-      final num = double.tryParse(eat());
-      return num;
+      return left;
     }
 
     final result = parseExpr();
@@ -856,7 +855,8 @@ class AppState extends ChangeNotifier {
             'dense.');
         final outline = graph.outline();
         if (outline.isNotEmpty) {
-          buf.writeln().writeln(outline);
+          buf.writeln();
+          buf.writeln(outline);
         }
       } else {
         buf.writeln();
@@ -878,7 +878,8 @@ class AppState extends ChangeNotifier {
       }
       final procedural = memory.proceduralBlock();
       if (procedural != null) {
-        buf.writeln().writeln(procedural);
+        buf.writeln();
+        buf.writeln(procedural);
       }
     }
 

@@ -104,7 +104,7 @@ class LlmException implements Exception {
   String toString() => message;
 }
 
-const _memoryToolDefs = [
+const memoryToolDefs = [
   {
     'name': 'save_memory',
     'description':
@@ -135,7 +135,7 @@ const _memoryToolDefs = [
   },
 ];
 
-const _outlineToolDefs = [
+const outlineToolDefs = [
   {
     'name': 'memory_write',
     'description':
@@ -176,7 +176,7 @@ const _outlineToolDefs = [
   },
 ];
 
-const _extraToolDefs = [
+const extraToolDefs = [
   {
     'name': 'datetime',
     'description':

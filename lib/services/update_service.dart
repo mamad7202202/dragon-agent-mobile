@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+enum UpdatePhase { idle, checking, downloading, downloaded, error }
+
 /// Information about a newer release on GitHub.
 class UpdateInfo {
   final String version;
