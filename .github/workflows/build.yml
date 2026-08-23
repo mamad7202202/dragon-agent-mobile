@@ -1,0 +1,145 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform scaffold (CI-only)
+        run: flutter create . --project-name dragon_agent_mobile --org com.dragonagent --platforms android
+
+      - name: Patch Android manifest (network + label + cleartext for local models)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          perl -0pi -e 's/(<manifest[^>]*>)/$1\n    <uses-permission android:name="android.permission.INTERNET" \/>/' $M
+          perl -0pi -e 's/<application\n/<application\n      android:usesCleartextTraffic="true"\n/' $M
+          sed -i 's|android:label="dragon_agent_mobile"|android:label="Dragon Agent"|' $M
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Launcher icons
+        run: dart run flutter_launcher_icons
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APKs
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Dragon-Agent-android-universal.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/Dragon-Agent-android-arm64.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dragon-agent-android
+          path: dist/*.apk
+
+  ios:
+    name: iOS IPA (unsigned)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate platform scaffold (CI-only)
+        run: flutter create . --project-name dragon_agent_mobile --org com.dragonagent --platforms ios
+
+      - name: Patch iOS Info.plist (display name + allow cleartext for local models)
+        run: |
+          plutil -replace CFBundleDisplayName -string "Dragon Agent" ios/Runner/Info.plist
+          plutil -replace NSAppTransportSecurity -xml '<dict><key>NSAllowsArbitraryLoads</key><true/></dict>' ios/Runner/Info.plist
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Launcher icons
+        run: dart run flutter_launcher_icons
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign --no-tree-shake-icons
+
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -qry Dragon-Agent-iOS-unsigned.ipa Payload
+          mkdir -p dist && mv Dragon-Agent-iOS-unsigned.ipa dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dragon-agent-ios
+          path: dist/*.ipa
+
+  release:
+    name: Release
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Rolling latest release
+        if: github.ref == 'refs/heads/main'
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
+          prerelease: true
+          title: Dragon Agent Mobile — rolling build
+          files: dist/*
+
+      - name: Tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*

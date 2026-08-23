@@ -1,0 +1,10 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    deprecated_member_use: ignore
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    avoid_print: true
