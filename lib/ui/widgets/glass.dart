@@ -2,8 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../../core/theme.dart';
-
 /// Frosted "liquid glass" surface — blur + translucent fill + hairline border
 /// with a top highlight, used for floating chrome (composer, chips, sheets).
 class GlassContainer extends StatelessWidget {

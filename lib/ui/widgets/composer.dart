@@ -49,7 +49,6 @@ class _ComposerState extends State<Composer> {
   Widget build(BuildContext context) {
     final busy = context.select<AppState, bool>((s) => s.busy);
     final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
       top: false,

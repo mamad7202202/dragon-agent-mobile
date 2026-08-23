@@ -18,6 +18,111 @@ enum MemoryMode { hybrid, outline }
 
 enum ApprovalDecision { once, session, deny }
 
+/// Safe arithmetic evaluator — tokenizer + recursive descent, no eval().
+double? evaluateExpression(String input) {
+  final src = input.replaceAll('×', '*').replaceAll('÷', '/').trim();
+  if (src.isEmpty || src.length > 200) return null;
+  final tokens = <String>[];
+  var i = 0;
+  while (i < src.length) {
+    final c = src[i];
+    if (c == ' ') {
+      i++;
+      continue;
+    }
+    if ('+-*/%^()'.contains(c)) {
+      tokens.add(c);
+      i++;
+    } else if ('0123456789.'.contains(c)) {
+      var j = i;
+      while (j < src.length && '0123456789.'.contains(src[j])) {
+        j++;
+      }
+      tokens.add(src.substring(i, j));
+      i = j;
+    } else {
+      return null;
+    }
+  }
+  var pos = 0;
+  String? peek() => pos < tokens.length ? tokens[pos] : null;
+  String eat() => tokens[pos++];
+
+  double? parseAtom() {
+    final t = peek();
+    if (t == null) return null;
+    if (t == '(') {
+      eat();
+      final v = parseExpr();
+      if (v == null || peek() != ')') return null;
+      eat();
+      return v;
+    }
+    return double.tryParse(eat());
+  }
+
+  double? parseUnary() {
+    if (peek() == '-') {
+      eat();
+      final v = parseUnary();
+      return v == null ? null : -v;
+    }
+    if (peek() == '+') {
+      eat();
+      return parseUnary();
+    }
+    return parseAtom();
+  }
+
+  double? parsePower() {
+    final base = parseUnary();
+    if (base == null) return null;
+    if (peek() == '^') {
+      eat();
+      final exp = parsePower();
+      if (exp == null) return null;
+      return math.pow(base, exp).toDouble();
+    }
+    return base;
+  }
+
+  double? parseTerm() {
+    var left = parsePower();
+    if (left == null) return null;
+    while (peek() == '*' || peek() == '/' || peek() == '%') {
+      final op = eat();
+      final right = parsePower();
+      if (right == null) return null;
+      if (op == '*') {
+        left = left * right;
+      } else if (op == '/') {
+        if (right == 0) return null;
+        left = left / right;
+      } else {
+        if (right == 0) return null;
+        left = left % right;
+      }
+    }
+    return left;
+  }
+
+  double? parseExpr() {
+    var left = parseTerm();
+    if (left == null) return null;
+    while (peek() == '+' || peek() == '-') {
+      final op = eat();
+      final right = parseTerm();
+      if (right == null) return null;
+      left = (op == '+') ? left + right : left - right;
+    }
+    return left;
+  }
+
+  final result = parseExpr();
+  if (result == null || pos != tokens.length) return null;
+  return result;
+}
+
 class ApprovalRequest {
   final String callId;
   final String tool;
@@ -723,109 +828,7 @@ class AppState extends ChangeNotifier {
 
   // ---- tiny safe arithmetic evaluator (no eval) ----
 
-  double? _calc(String input) {
-    final src = input.replaceAll('×', '*').replaceAll('÷', '/').trim();
-    if (src.isEmpty || src.length > 200) return null;
-    final tokens = <String>[];
-    var i = 0;
-    while (i < src.length) {
-      final c = src[i];
-      if (c == ' ') {
-        i++;
-        continue;
-      }
-      if ('+-*/%^()'.contains(c)) {
-        tokens.add(c);
-        i++;
-      } else if ('0123456789.'.contains(c)) {
-        var j = i;
-        while (j < src.length && '0123456789.'.contains(src[j])) {
-          j++;
-        }
-        tokens.add(src.substring(i, j));
-        i = j;
-      } else {
-        return null;
-      }
-    }
-    var pos = 0;
-    String? peek() => pos < tokens.length ? tokens[pos] : null;
-    String eat() => tokens[pos++];
-
-    double? parseAtom() {
-      final t = peek();
-      if (t == null) return null;
-      if (t == '(') {
-        eat();
-        final v = parseExpr();
-        if (v == null || peek() != ')') return null;
-        eat();
-        return v;
-      }
-      return double.tryParse(eat());
-    }
-
-    double? parseUnary() {
-      if (peek() == '-') {
-        eat();
-        final v = parseUnary();
-        return v == null ? null : -v;
-      }
-      if (peek() == '+') {
-        eat();
-        return parseUnary();
-      }
-      return parseAtom();
-    }
-
-    double? parsePower() {
-      final base = parseUnary();
-      if (base == null) return null;
-      if (peek() == '^') {
-        eat();
-        final exp = parsePower();
-        if (exp == null) return null;
-        return math.pow(base, exp).toDouble();
-      }
-      return base;
-    }
-
-    double? parseTerm() {
-      var left = parsePower();
-      if (left == null) return null;
-      while (peek() == '*' || peek() == '/' || peek() == '%') {
-        final op = eat();
-        final right = parsePower();
-        if (right == null) return null;
-        if (op == '*') {
-          left = left * right;
-        } else if (op == '/') {
-          if (right == 0) return null;
-          left = left / right;
-        } else {
-          if (right == 0) return null;
-          left = left % right;
-        }
-      }
-      return left;
-    }
-
-    double? parseExpr() {
-      var left = parseTerm();
-      if (left == null) return null;
-      while (peek() == '+' || peek() == '-') {
-        final op = eat();
-        final right = parseTerm();
-        if (right == null) return null;
-        left = (op == '+') ? left + right : left - right;
-      }
-      return left;
-    }
-
-    final result = parseExpr();
-    if (result == null || pos != tokens.length) return null;
-    return result;
-  }
+  double? _calc(String input) => evaluateExpression(input);
 
   // ------------------------------------------------------------------
   // system prompt

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../services/update_service.dart' show UpdatePhase;
 import '../../state/app_state.dart';
 
 /// Sliding banner shown when a newer GitHub release is available.

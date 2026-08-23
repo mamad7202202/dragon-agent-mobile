@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme.dart';
-import '../../data/llm.dart' show ThinkingLevel;
+import '../../data/llm.dart' show ThinkingLevel, ThinkingLevelX;
+import '../../services/update_service.dart' show UpdatePhase;
 import '../../state/app_state.dart';
 import '../widgets/flame_logo.dart';
 import '../widgets/update_banner.dart';
@@ -24,7 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final state = context.watch<AppState>();
     final s = state.settings;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = dark ? DragonColors.card : Colors.white;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
