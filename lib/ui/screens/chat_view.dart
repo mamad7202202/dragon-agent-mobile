@@ -6,7 +6,6 @@ import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../widgets/bubble.dart';
-import '../widgets/composer.dart';
 import '../widgets/flame_logo.dart';
 
 /// Main chat surface.
