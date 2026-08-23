@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../widgets/bubble.dart';
 import '../widgets/composer.dart';

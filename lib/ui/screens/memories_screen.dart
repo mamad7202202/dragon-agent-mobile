@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../data/memory.dart';
+import '../../state/app_state.dart';
 import '../widgets/flame_logo.dart';
 
 /// Memory manager — semantic facts + procedural MEMORY.md.

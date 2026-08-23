@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
-import '../../data/models.dart';
+import '../../data/llm.dart' show ProviderCfg;
 import '../../state/app_state.dart';
+import '../widgets/composer.dart';
 import '../widgets/flame_logo.dart';
 import 'chat_view.dart';
 import 'memories_screen.dart';
@@ -39,7 +40,6 @@ class _HomeShellState extends State<HomeShell> {
       _memoriesTickSeen = state.memoriesOpenTick;
       WidgetsBinding.instance.addPostFrameCallback((_) => _openMemories(context));
     }
-    final cfg = state.cfg;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(

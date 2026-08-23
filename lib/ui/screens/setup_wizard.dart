@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/presets.dart';
 import '../../core/theme.dart';
 import '../../data/llm.dart';
+import '../../state/app_state.dart';
 import '../widgets/flame_logo.dart';
 
 /// First-run setup wizard: provider → connection → model.

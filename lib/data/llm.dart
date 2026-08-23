@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -338,7 +337,7 @@ class LlmClient {
   // Anthropic-native
   // ------------------------------------------------------------------
 
-  Map<String, dynamic> _anthropicBody(
+  String _anthropicBody(
     ProviderCfg cfg,
     String model,
     String system,
@@ -451,7 +450,8 @@ class LlmClient {
   ) async {
     final url = '${_trim(cfg.baseUrl)}/messages';
     final tools = _memoryToolDefs
-        .map((t) => t as Map<String, Object>)
+        .map<Map<String, Object>>(
+            (t) => Map<String, Object>.from(t as Map))
         .toList();
     final req = http.Request('POST', Uri.parse(url))
       ..headers.addAll({

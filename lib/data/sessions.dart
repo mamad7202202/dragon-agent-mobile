@@ -33,7 +33,7 @@ class SessionStore {
   Future<String> get sessionsDir async =>
       '${(await getApplicationDocumentsDirectory()).path}/dragon/sessions';
 
-  static const _uuid = Uuid2();
+  static final _uuid = Uuid2();
 
   Future<void> loadIndex() async {
     final dir = await sessionsDir;

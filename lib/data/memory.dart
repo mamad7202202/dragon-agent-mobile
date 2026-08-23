@@ -190,9 +190,13 @@ double cosine(List<String> a, List<String> b) {
     dot += va * (cb[t] ?? 0);
   });
   var na = 0.0;
-  ca.values.forEach((v) => na += v * v);
+  for (final v in ca.values) {
+    na += v * v;
+  }
   var nb = 0.0;
-  cb.values.forEach((v) => nb += v * v);
+  for (final v in cb.values) {
+    nb += v * v;
+  }
   na = math.sqrt(na);
   nb = math.sqrt(nb);
   if (na == 0 || nb == 0) return 0;

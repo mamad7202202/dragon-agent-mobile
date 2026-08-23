@@ -439,7 +439,8 @@ class AppState extends ChangeNotifier {
       }
       final procedural = memory.proceduralBlock();
       if (procedural != null) {
-        buf.writeln().writeln(procedural);
+        buf.writeln();
+        buf.writeln(procedural);
       }
     }
     if (session.wire.where((m) => m['r'] == 's').isNotEmpty) {
