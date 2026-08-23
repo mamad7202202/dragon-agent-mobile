@@ -1,0 +1,31 @@
+name: Generate release keystore
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Generate keystore (fixed signing key)
+        run: |
+          keytool -genkeypair -v \
+            -keystore release.keystore \
+            -alias dragon \
+            -keyalg RSA -keysize 2048 -validity 10950 \
+            -storepass dragonagent2026 -keypass dragonagent2026 \
+            -dname "CN=Dragon Agent Mobile, OU=Dragon, O=mamad720220, C=IR"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-keystore
+          path: release.keystore
+          retention-days: 1
