@@ -47,7 +47,7 @@ ThemeData buildDragonTheme(Brightness brightness) {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: isDark ? DragonColors.bg : DragonColors.bgLight,
-    splashFactory: InkSparkle.splashFactory,
+    splashFactory: InkRipple.splashFactory,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       foregroundColor: fg,

@@ -44,6 +44,7 @@ Mobile** ports the desktop app's *hybrid memory system* to your pocket:
 | **Bring your own key** | Google AI Studio, OpenRouter, OpenAI, Anthropic (native), Groq, DeepSeek, Ollama / LM Studio over LAN, or any OpenAI-compatible endpoint |
 | **Real tool use** | The agent calls `save_memory` / `forget_memory` on its own; live tool-activity chips show what it's doing |
 | **Streaming** | Token-by-token responses with SSE for both OpenAI-compatible and Anthropic-native protocols |
+| **Auto-update** | Checks GitHub releases on connect; one tap downloads & installs over the current version — no uninstall needed |
 | **Ember-lit UI** | Material 3 dark theme, molten-orange gradients, animated flame logo, smooth 60 fps transitions |
 | **Private by default** | Keys, memories and transcripts live only on your device |
 
@@ -81,6 +82,35 @@ A three-step wizard gets you talking in under a minute:
 ```
 
 Tap the model chip in the top bar (`/model` equivalent) to switch models mid-session.
+
+## Updating
+
+The app updates itself:
+
+1. Whenever the device comes online (and once on launch), it checks the
+   [rolling `latest` release](https://github.com/mamad7202202/dragon-agent-mobile/releases/tag/latest)
+   via the GitHub API.
+2. If a newer `X.Y.Z` exists, a banner slides in — tap **به‌روزرسانی**.
+3. The APK downloads with live progress, then the system installer opens.
+   Installs stack on top of the current version (same signing key + same
+   `applicationId`), so you never uninstall first.
+4. Manual check lives in **Settings → Check for updates**. On iOS the banner
+   opens the releases page instead (in-app self-update isn't possible there).
+
+## Versioning
+
+- Source of truth: `version: X.Y.Z+N` in `pubspec.yaml` (bump on every change set).
+- Every push to `main` is tagged `vX.Y.Z` automatically and gets its own
+  formal release, alongside the rolling `latest`.
+- The in-app updater compares semver, so `+N` build numbers never trigger
+  false updates.
+
+### Signing
+
+`signing/release.keystore` is committed to the repo and used by CI
+(`apksigner`, alias `dragon`, storepass `dragonagent2026`). It's a public,
+dedicated sideloading key — that's what guarantees update-over-install works
+across builds. Don't reuse it anywhere sensitive.
 
 ## Architecture
 

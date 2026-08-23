@@ -6,6 +6,7 @@ import '../../data/llm.dart' show ProviderCfg;
 import '../../state/app_state.dart';
 import '../widgets/composer.dart';
 import '../widgets/flame_logo.dart';
+import '../widgets/update_banner.dart';
 import 'chat_view.dart';
 import 'memories_screen.dart';
 import 'settings_screen.dart';
@@ -99,6 +100,7 @@ class _HomeShellState extends State<HomeShell> {
         child: Column(
           children: [
             const SizedBox(height: kToolbarHeight + 14),
+            const UpdateBanner(),
             Expanded(child: ChatView(openMemories: () => _openMemories(context))),
             const Composer(),
           ],

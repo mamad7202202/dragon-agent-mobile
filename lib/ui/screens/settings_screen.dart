@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../state/app_state.dart';
 import '../widgets/flame_logo.dart';
+import '../widgets/update_banner.dart';
 import 'memories_screen.dart';
 import 'sessions_screen.dart';
 import 'setup_wizard.dart';
@@ -129,15 +130,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
+          _SectionHeader('Updates'),
+          _CardTile(
+            leading: Icon(Icons.system_update_alt_rounded, color: DragonColors.gold),
+            title: 'Check for updates',
+            subtitle: state.lastUpdateNotice ??
+                'Current version ${state.appVersion} · auto-checked on connect',
+            trailing: state.updatePhase == UpdatePhase.checking
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.2, color: DragonColors.ember))
+                : const Icon(Icons.chevron_right_rounded),
+            onTap: state.updatePhase == UpdatePhase.checking
+                ? null
+                : () async {
+                    await context.read<AppState>().checkForUpdates(manual: true);
+                    if (!context.mounted) return;
+                    final st = context.read<AppState>();
+                    if (st.pendingUpdate != null) {
+                      showUpdateSheet(context);
+                    } else {
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(SnackBar(
+                            content: Text(st.lastUpdateNotice ??
+                                'You are on the latest version.')));
+                    }
+                  },
+          ),
+          const SizedBox(height: 16),
+
           _SectionHeader('About'),
           _CardTile(
             leading: const FlameLogo(size: 30),
             title: 'Dragon Agent Mobile',
             subtitle:
-                'v1.0.0 · open-source · MIT\nCompanion to the desktop dragon-agent',
+                'v${state.appVersion} · open-source · MIT\nCompanion to the desktop dragon-agent',
             isLast: true,
             onTap: () => launchUrl(
-                Uri.parse('https://github.com/mamad7202202/dragon-agent'),
+                Uri.parse('https://github.com/mamad7202202/dragon-agent-mobile'),
                 mode: LaunchMode.externalApplication),
           ),
           const SizedBox(height: 20),

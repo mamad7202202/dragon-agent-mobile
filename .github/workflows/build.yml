@@ -42,6 +42,15 @@ jobs:
           perl -0pi -e 's/<application\n/<application\n      android:usesCleartextTraffic="true"\n/' $M
           sed -i 's|android:label="dragon_agent_mobile"|android:label="Dragon Agent"|' $M
 
+      - name: Dark launch screen (no white flash)
+        run: |
+          cat > android/app/src/main/res/drawable/launch_background.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+            <item android:drawable="#FF0B0C10" />
+          </layer-list>
+          XML
+
       - name: Pub get
         run: flutter pub get
 
@@ -58,6 +67,21 @@ jobs:
         run: |
           flutter build apk --release --split-per-abi
           flutter build apk --release
+
+      - name: Sign APKs with stable key (updates install over each other)
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)"
+          echo "using build-tools: $BT"
+          for f in build/app/outputs/flutter-apk/*-release*.apk; do
+            "$BT/apksigner" sign \
+              --ks "$GITHUB_WORKSPACE/signing/release.keystore" \
+              --ks-key-alias dragon \
+              --ks-pass pass:dragonagent2026 \
+              --key-pass pass:dragonagent2026 \
+              --out "$f.signed" "$f"
+            "$BT/apksigner" verify "$f.signed"
+            mv "$f.signed" "$f"
+          done
 
       - name: Collect artifacts
         run: |
@@ -120,26 +144,39 @@ jobs:
     name: Release
     needs: [android, ios]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
 
+      - name: Derive version from pubspec & create v-tag
+        run: |
+          VER=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f1)
+          TAG="v$VER"
+          echo "VERSION=$VER" >> "$GITHUB_ENV"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push -f origin "$TAG"
+
       - name: Rolling latest release
-        if: github.ref == 'refs/heads/main'
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: latest
           prerelease: true
-          title: Dragon Agent Mobile — rolling build
+          title: Dragon Agent Mobile v${{ env.VERSION }} — rolling build
           files: dist/*
 
-      - name: Tagged release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Versioned release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ env.VERSION }}
+          name: Dragon Agent Mobile v${{ env.VERSION }}
           generate_release_notes: true
           files: dist/*

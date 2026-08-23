@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +9,9 @@ import '../data/llm.dart';
 import '../data/memory.dart';
 import '../data/models.dart';
 import '../data/sessions.dart';
+import '../services/update_service.dart';
+
+enum UpdatePhase { idle, checking, downloading, downloaded, error }
 
 class Settings {
   double temperature;
@@ -72,10 +76,125 @@ class AppState extends ChangeNotifier {
   /// True once init() finished loading persisted state.
   bool ready = false;
 
+  // ---- update state ----
+  final UpdateService _updates = UpdateService();
+  StreamSubscription? _connectivitySub;
+  DateTime _lastUpdateCheck = DateTime.fromMillisecondsSinceEpoch(0);
+
+  UpdateInfo? pendingUpdate;
+  UpdatePhase updatePhase = UpdatePhase.idle;
+  double downloadProgress = 0;
+  String? downloadedApkPath;
+  String? updateError;
+  String? lastUpdateNotice;
+  bool updateDismissed = false;
+  String appVersion = '…';
+
+  Future<void> checkForUpdates({bool manual = false}) async {
+    if (updatePhase == UpdatePhase.checking ||
+        updatePhase == UpdatePhase.downloading) {
+      return;
+    }
+    if (!manual &&
+        DateTime.now().difference(_lastUpdateCheck) <
+            const Duration(minutes: 20)) {
+      return;
+    }
+    _lastUpdateCheck = DateTime.now();
+    updatePhase = UpdatePhase.checking;
+    lastUpdateNotice = null;
+    if (manual) notifyListeners();
+    try {
+      final info = await _updates.check(appVersion);
+      if (info != null) {
+        pendingUpdate = info;
+        updateDismissed = false;
+      } else {
+        pendingUpdate = null;
+        if (manual) lastUpdateNotice = 'You are on the latest version ($appVersion).';
+      }
+      updatePhase = UpdatePhase.idle;
+    } catch (e) {
+      updatePhase = UpdatePhase.idle;
+      if (manual) lastUpdateNotice = 'Update check failed — check your connection.';
+    }
+    notifyListeners();
+  }
+
+  Future<void> downloadUpdate() async {
+    final info = pendingUpdate;
+    if (info == null || updatePhase == UpdatePhase.downloading) return;
+    updatePhase = UpdatePhase.downloading;
+    downloadProgress = 0;
+    updateError = null;
+    notifyListeners();
+    try {
+      downloadedApkPath = await _updates.download(
+        info.apkUrl,
+        (p) {
+          downloadProgress = p;
+          notifyListeners();
+        },
+      );
+      updatePhase = UpdatePhase.downloaded;
+    } catch (e) {
+      updatePhase = UpdatePhase.error;
+      updateError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> installUpdate() async {
+    final path = downloadedApkPath;
+    if (path == null) return;
+    updateError = await _updates.install(path,
+        fallbackUrl: pendingUpdate?.releaseUrl);
+    if (updateError != null) notifyListeners();
+  }
+
+  void dismissUpdate() {
+    updateDismissed = true;
+    notifyListeners();
+  }
+
+  Future<void> _startUpdateWatch() async {
+    unawaited(checkForUpdates());
+    try {
+      _connectivitySub = Connectivity().onConnectivityChanged.listen((res) {
+        final online = res is List
+            ? (res).any((e) => e != ConnectivityResult.none)
+            : res != ConnectivityResult.none;
+        if (online) unawaited(checkForUpdates());
+      });
+    } catch (_) {}
+  }
+
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    await memory.load();
-    await sessions.loadIndex();
+    try {
+      _prefs = await SharedPreferences.getInstance();
+    } catch (_) {
+      ready = true;
+      notifyListeners();
+      return;
+    }
+    try {
+      await _loadEverything();
+    } catch (_) {
+      // never leave the app stuck on the splash screen
+    } finally {
+      ready = true;
+      notifyListeners();
+    }
+    unawaited(_startUpdateWatch());
+  }
+
+  Future<void> _loadEverything() async {
+    try {
+      await memory.load();
+    } catch (_) {}
+    try {
+      await sessions.loadIndex();
+    } catch (_) {}
 
     final rawProviders = _prefs.getString('providers');
     if (rawProviders != null) {
@@ -100,6 +219,10 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
     }
 
+    try {
+      appVersion = await _updates.currentVersion();
+    } catch (_) {}
+
     // resume latest session
     if (configured && sessions.metas.isNotEmpty) {
       try {
@@ -107,8 +230,6 @@ class AppState extends ChangeNotifier {
         _rebuildBubbles();
       } catch (_) {}
     }
-    ready = true;
-    notifyListeners();
   }
 
   Future<void> _persistConfig() async {
@@ -520,6 +641,8 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _llm.dispose();
+    _updates.dispose();
+    _connectivitySub?.cancel();
     super.dispose();
   }
 }
