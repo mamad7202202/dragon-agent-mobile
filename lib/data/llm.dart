@@ -4,6 +4,31 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 import '../core/presets.dart';
+import 'models.dart';
+
+/// Deep-thinking (reasoning) effort level.
+enum ThinkingLevel { off, low, medium, high }
+
+extension ThinkingLevelX on ThinkingLevel {
+  String get label => switch (this) {
+        ThinkingLevel.off => 'Off',
+        ThinkingLevel.low => 'Low',
+        ThinkingLevel.medium => 'Medium',
+        ThinkingLevel.high => 'Deep',
+      };
+
+  String get wireName => switch (this) {
+        ThinkingLevel.low => 'low',
+        ThinkingLevel.medium => 'medium',
+        _ => 'high',
+      };
+
+  int get anthropicBudget => switch (this) {
+        ThinkingLevel.low => 2048,
+        ThinkingLevel.medium => 8192,
+        _ => 16384,
+      };
+}
 
 /// One provider configuration (key + endpoint + model).
 class ProviderCfg {
@@ -20,6 +45,9 @@ class ProviderCfg {
     required this.apiKey,
     this.models = const [],
   });
+
+  bool get supportsWebSearch =>
+      protocol == Protocol.anthropic || baseUrl.contains('openrouter');
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -54,16 +82,19 @@ final class DeltaText extends TurnEvent {
   DeltaText(this.text);
 }
 
+final class DeltaThinking extends TurnEvent {
+  final String text;
+  DeltaThinking(this.text);
+}
+
+final class UsageReported extends TurnEvent {
+  final MsgUsage usage;
+  UsageReported(this.usage);
+}
+
 final class ToolRequested extends TurnEvent {
   final ToolCall call;
   ToolRequested(this.call);
-}
-
-final class ToolFinished extends TurnEvent {
-  final String name;
-  final bool ok;
-  final String output;
-  ToolFinished(this.name, this.ok, this.output);
 }
 
 class LlmException implements Exception {
@@ -104,6 +135,98 @@ const _memoryToolDefs = [
   },
 ];
 
+const _outlineToolDefs = [
+  {
+    'name': 'memory_write',
+    'description':
+        'Upsert one or more short bullets into a section of the user memory '
+            'outline (profile, preferences, projects, people, goals, facts...). '
+            'Bullets must be self-contained, max ~140 chars. Existing identical '
+            'bullets are refreshed instead of duplicated.',
+    'parameters': {
+      'type': 'object',
+      'properties': {
+        'section': {
+          'type': 'string',
+          'description': 'Section name, e.g. "profile", "preferences".'
+        },
+        'bullets': {
+          'type': 'array',
+          'items': {'type': 'string'},
+          'description': 'One or more concise bullets to store.'
+        },
+      },
+      'required': ['section', 'bullets'],
+    },
+  },
+  {
+    'name': 'memory_delete',
+    'description': 'Delete an entry from the memory outline by its id prefix, '
+        'or clear an entire section with section=...',
+    'parameters': {
+      'type': 'object',
+      'properties': {
+        'id': {'type': 'string', 'description': 'Entry id or id prefix.'},
+        'section': {
+          'type': 'string',
+          'description': 'Alternatively, a whole section to clear.'
+        },
+      },
+    },
+  },
+];
+
+const _extraToolDefs = [
+  {
+    'name': 'datetime',
+    'description':
+        'Get the current local date & time and timezone. Use it whenever the '
+            'user mentions "today", deadlines, or relative times.',
+    'parameters': {'type': 'object', 'properties': <String, dynamic>{}},
+  },
+  {
+    'name': 'calculator',
+    'description':
+        'Evaluate an arithmetic expression exactly (+ - * / % ^ parentheses). '
+            'Use for any non-trivial math instead of mental arithmetic.',
+    'parameters': {
+      'type': 'object',
+      'properties': {
+        'expression': {'type': 'string', 'description': 'e.g. (1250*12)/3'},
+      },
+      'required': ['expression'],
+    },
+  },
+  {
+    'name': 'list_memories',
+    'description':
+        'List everything currently stored in long-term memory (ids + content) '
+            'so you can decide what to update or forget.',
+    'parameters': {'type': 'object', 'properties': <String, dynamic>{}},
+  },
+  {
+    'name': 'device_info',
+    'description':
+        'Basic facts about the device the user is on (OS, version, locale, '
+            'timezone). Useful for tailoring answers.',
+    'parameters': {'type': 'object', 'properties': <String, dynamic>{}},
+  },
+  {
+    'name': 'remember_rule',
+    'description':
+        'Add a standing rule to the user\'s MEMORY.md — persistent '
+            'instructions that are always in effect (e.g. "always answer in '
+            'Persian"). Sensitive: asks the user for approval.',
+    'parameters': {
+      'type': 'object',
+      'properties': {
+        'rule': {'type': 'string', 'description': 'One rule, one line.'},
+      },
+      'required': ['rule'],
+    },
+  },
+];
+
 class LlmClient {
   final http.Client _http = http.Client();
 
@@ -113,8 +236,6 @@ class LlmClient {
   // Streaming turn
   // ------------------------------------------------------------------
 
-  /// Streams one assistant turn from the wire history.
-  /// [wire] is neutral-format history; converted per-protocol internally.
   Future<void> streamTurn({
     required ProviderCfg cfg,
     required String model,
@@ -122,13 +243,18 @@ class LlmClient {
     required List<Map<String, dynamic>> wire,
     double temperature = 0.7,
     int maxTokens = 2048,
+    ThinkingLevel thinking = ThinkingLevel.off,
+    bool webSearch = false,
+    required List<Map<String, Object>> toolDefs,
     required void Function(TurnEvent) onEvent,
   }) async {
     switch (cfg.protocol) {
       case Protocol.openai:
-        await _streamOpenAI(cfg, model, system, wire, temperature, maxTokens, onEvent);
+        await _streamOpenAI(cfg, model, system, wire, temperature, maxTokens,
+            thinking, webSearch, toolDefs, onEvent);
       case Protocol.anthropic:
-        await _streamAnthropic(cfg, model, system, wire, temperature, maxTokens, onEvent);
+        await _streamAnthropic(cfg, model, system, wire, temperature, maxTokens,
+            thinking, webSearch, toolDefs, onEvent);
     }
   }
 
@@ -142,8 +268,6 @@ class LlmClient {
   }) async {
     final buf = StringBuffer();
     if (cfg.protocol == Protocol.anthropic) {
-      final body = _anthropicBody(
-          cfg, model, system, wire, 0.3, maxTokens, false, null);
       final res = await _post(
         '${_trim(cfg.baseUrl)}/messages',
         headers: {
@@ -151,7 +275,12 @@ class LlmClient {
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
         },
-        body: body,
+        body: jsonEncode({
+          'model': model,
+          'system': system,
+          'max_tokens': maxTokens,
+          'messages': _anthropicMessages(wire),
+        }),
       );
       final data = jsonDecode(utf8.decode(res));
       for (final block in (data['content'] as List? ?? [])) {
@@ -162,13 +291,12 @@ class LlmClient {
       return buf.toString();
     }
 
-    final msgs = _openAIMessages(system, wire);
     final res = await _post(
       '${_trim(cfg.baseUrl)}/chat/completions',
       headers: _openAIHeaders(cfg),
       body: jsonEncode({
         'model': model,
-        'messages': msgs,
+        'messages': _openAIMessages(system, wire),
         'temperature': 0.3,
         'max_tokens': maxTokens,
       }),
@@ -231,7 +359,8 @@ class LlmClient {
         case 'tr':
           for (final x in (m['x'] as List)) {
             final xm = x as Map<String, dynamic>;
-            out.add({'role': 'tool', 'tool_call_id': xm['id'], 'content': xm['out']});
+            out.add(
+                {'role': 'tool', 'tool_call_id': xm['id'], 'content': xm['out']});
           }
       }
     }
@@ -245,23 +374,38 @@ class LlmClient {
     List<Map<String, dynamic>> wire,
     double temperature,
     int maxTokens,
+    ThinkingLevel thinking,
+    bool webSearch,
+    List<Map<String, Object>> toolDefs,
     void Function(TurnEvent) onEvent,
   ) async {
-    final url =
-        '${_trim(cfg.baseUrl)}/chat/completions';
-    final req = http.Request('POST', Uri.parse(url))
+    var effectiveModel = model;
+    if (webSearch && cfg.baseUrl.contains('openrouter')) {
+      if (!effectiveModel.contains(':online')) {
+        effectiveModel = '$effectiveModel:online';
+      }
+    }
+
+    final body = <String, dynamic>{
+      'model': effectiveModel,
+      'messages': _openAIMessages(system, wire),
+      'temperature': temperature,
+      'max_tokens': maxTokens,
+      'stream': true,
+      'tools': toolDefs
+          .map((t) => {
+                'type': 'function',
+                'function': t,
+              })
+          .toList(),
+      if (thinking != ThinkingLevel.off) 'reasoning_effort': thinking.wireName,
+      if (cfg.baseUrl.contains('api.openai.com'))
+        'stream_options': {'include_usage': true},
+    };
+
+    final req = http.Request('POST', Uri.parse('${_trim(cfg.baseUrl)}/chat/completions'))
       ..headers.addAll(_openAIHeaders(cfg))
-      ..body = jsonEncode({
-        'model': model,
-        'messages': _openAIMessages(system, wire),
-        'temperature': temperature,
-        'max_tokens': maxTokens,
-        'stream': true,
-        'tools': _memoryToolDefs.map((t) => {
-              'type': 'function',
-              'function': t,
-            }).toList(),
-      });
+      ..body = jsonEncode(body);
 
     final res = await _http.send(req);
     if (res.statusCode != 200) {
@@ -270,9 +414,10 @@ class LlmClient {
 
     final calls = <int, ToolCall>{};
     final argsBuf = <int, StringBuffer>{};
-    var sawToolCall = false;
 
-    await for (final line in res.stream.transform(utf8.decoder).transform(const LineSplitter())) {
+    await for (final line in res.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())) {
       final l = line.trim();
       if (!l.startsWith('data:')) continue;
       final payload = l.substring(5).trim();
@@ -283,13 +428,31 @@ class LlmClient {
       } catch (_) {
         continue;
       }
+
+      final usage = j['usage'] as Map?;
+      if (usage != null) {
+        onEvent(UsageReported(MsgUsage(
+          inputTokens: (usage['prompt_tokens'] as num?)?.toInt() ?? 0,
+          outputTokens: (usage['completion_tokens'] as num?)?.toInt() ?? 0,
+          totalTokens: (usage['total_tokens'] as num?)?.toInt() ?? 0,
+        )));
+      }
+
       final choices = j['choices'] as List?;
       if (choices == null || choices.isEmpty) continue;
       final delta = (choices.first as Map)['delta'] as Map? ?? {};
+
+      final reasoning =
+          (delta['reasoning'] ?? delta['reasoning_content']) as String?;
+      if (reasoning != null && reasoning.isNotEmpty) {
+        onEvent(DeltaThinking(reasoning));
+      }
+
       final content = delta['content'] as String?;
       if (content != null && content.isNotEmpty) {
         onEvent(DeltaText(content));
       }
+
       final tcs = delta['tool_calls'] as List?;
       if (tcs != null) {
         for (var i = 0; i < tcs.length; i++) {
@@ -302,7 +465,6 @@ class LlmClient {
               name: (fn['name'] as String?) ?? '',
               argsJson: '',
             );
-            sawToolCall = true;
           } else if (calls[idx] != null && fn['name'] != null) {
             calls[idx] = ToolCall(
               id: calls[idx]!.id,
@@ -330,43 +492,14 @@ class LlmClient {
       if (c.name.isEmpty) continue;
       onEvent(ToolRequested(c));
     }
-    if (!sawToolCall && calls.isEmpty) return;
   }
 
   // ------------------------------------------------------------------
   // Anthropic-native
   // ------------------------------------------------------------------
 
-  String _anthropicBody(
-    ProviderCfg cfg,
-    String model,
-    String system,
-    List<Map<String, dynamic>> wire,
-    double temperature,
-    int maxTokens,
-    bool stream,
-    List<Map<String, Object>>? tools,
-  ) {
-    return jsonEncode({
-      'model': model,
-      'system': system,
-      'max_tokens': maxTokens,
-      'temperature': clampTemp(temperature),
-      if (stream) 'stream': true,
-      if (tools != null)
-        'tools': tools
-            .map((t) => {
-                  'name': t['name'],
-                  'description': t['description'],
-                  'input_schema': t['parameters'],
-                })
-            .toList(),
-      'messages': _anthropicMessages(wire),
-    });
-  }
-
-  List<Map<String, dynamic>> _anthropicMessages(List<Map<String, dynamic>> wire) {
-    // Convert then merge consecutive same-role messages.
+  List<Map<String, dynamic>> _anthropicMessages(
+      List<Map<String, dynamic>> wire) {
     final conv = <Map<String, dynamic>>[];
     for (final m in wire) {
       switch (m['r'] as String) {
@@ -386,7 +519,7 @@ class LlmClient {
               final tm = t as Map<String, dynamic>;
               Object input;
               try {
-                input = tm['args'].toString().isEmpty
+                input = tm['args'].toString().trim().isEmpty
                     ? <String, dynamic>{}
                     : jsonDecode(tm['args'].toString()) as Object;
               } catch (_) {
@@ -414,7 +547,6 @@ class LlmClient {
           });
       }
     }
-    // merge consecutive same-role
     final merged = <Map<String, dynamic>>[];
     for (final m in conv) {
       if (merged.isNotEmpty &&
@@ -432,8 +564,7 @@ class LlmClient {
         merged.add(Map<String, dynamic>.from(m));
       }
     }
-    if (merged.isEmpty ||
-        merged.first['role'] != 'user') {
+    if (merged.isEmpty || merged.first['role'] != 'user') {
       merged.insert(0, {'role': 'user', 'content': '(begin)'});
     }
     return merged;
@@ -446,31 +577,63 @@ class LlmClient {
     List<Map<String, dynamic>> wire,
     double temperature,
     int maxTokens,
+    ThinkingLevel thinking,
+    bool webSearch,
+    List<Map<String, Object>> toolDefs,
     void Function(TurnEvent) onEvent,
   ) async {
-    final url = '${_trim(cfg.baseUrl)}/messages';
-    final tools = _memoryToolDefs
-        .map<Map<String, Object>>(
-            (t) => Map<String, Object>.from(t as Map))
-        .toList();
-    final req = http.Request('POST', Uri.parse(url))
+    final thinkingOn = thinking != ThinkingLevel.off;
+    final budget = thinking.anthropicBudget;
+    final effectiveMax = math.max(maxTokens, budget + 2048);
+
+    final tools = <Map<String, dynamic>>[
+      ...toolDefs.map((t) => {
+            'name': t['name'],
+            'description': t['description'],
+            'input_schema': t['parameters'],
+          }),
+      if (webSearch)
+        const {
+          'type': 'web_search_20250305',
+          'name': 'web_search',
+          'max_uses': 3,
+        },
+    ];
+
+    final body = <String, dynamic>{
+      'model': model,
+      'system': system,
+      'max_tokens': effectiveMax,
+      'stream': true,
+      'tools': tools,
+      if (thinkingOn) ...{
+        'thinking': {'type': 'enabled', 'budget_tokens': budget},
+        'temperature': 1.0,
+      } else
+        'temperature': clampTemp(temperature),
+    };
+
+    final req = http.Request('POST', Uri.parse('${_trim(cfg.baseUrl)}/messages'))
       ..headers.addAll({
         'x-api-key': cfg.apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       })
-      ..body = _anthropicBody(cfg, model, system, wire, temperature, maxTokens, true, tools);
+      ..body = jsonEncode(body);
 
     final res = await _http.send(req);
     if (res.statusCode != 200) {
       throw LlmException(await _errorText(res, 'Anthropic'));
     }
 
-    // index -> {type,name,id,textBuf,jsonBuf}
     final blocks = <int, Map<String, dynamic>>{};
     var stopReason = '';
+    var inTok = 0;
+    var outTok = 0;
 
-    await for (final raw in res.stream.transform(utf8.decoder).transform(const LineSplitter())) {
+    await for (final raw in res.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())) {
       final line = raw.trim();
       if (!line.startsWith('data:')) continue;
       Map<String, dynamic> j;
@@ -480,6 +643,9 @@ class LlmClient {
         continue;
       }
       switch (j['type']) {
+        case 'message_start':
+          final u = (j['message'] as Map?)?['usage'] as Map?;
+          inTok = (u?['input_tokens'] as num?)?.toInt() ?? 0;
         case 'content_block_start':
           final idx = (j['index'] as num).toInt();
           final cb = j['content_block'] as Map? ?? {};
@@ -496,12 +662,24 @@ class LlmClient {
           final d = j['delta'] as Map? ?? {};
           if (d['type'] == 'text_delta') {
             onEvent(DeltaText(d['text'] as String? ?? ''));
+          } else if (d['type'] == 'thinking_delta') {
+            onEvent(DeltaThinking(d['thinking'] as String? ?? ''));
           } else if (d['type'] == 'input_json_delta') {
             (b['json'] as StringBuffer).write(d['partial_json'] ?? '');
           }
         case 'message_delta':
           stopReason = (j['delta'] as Map?)?['stop_reason'] as String? ?? '';
+          final u = j['usage'] as Map?;
+          outTok = (u?['output_tokens'] as num?)?.toInt() ?? outTok;
       }
+    }
+
+    if (inTok > 0 || outTok > 0) {
+      onEvent(UsageReported(MsgUsage(
+        inputTokens: inTok,
+        outputTokens: outTok,
+        totalTokens: inTok + outTok,
+      )));
     }
 
     if (stopReason == 'tool_use') {

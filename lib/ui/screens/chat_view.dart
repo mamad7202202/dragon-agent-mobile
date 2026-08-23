@@ -7,7 +7,6 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../widgets/bubble.dart';
 import '../widgets/flame_logo.dart';
-
 /// Main chat surface.
 class ChatView extends StatefulWidget {
   final VoidCallback openMemories;
@@ -50,10 +49,15 @@ class _ChatViewState extends State<ChatView> {
     final state = context.watch<AppState>();
     final bubbles = state.bubbles;
     final liveText = state.liveText;
+    final liveThinking = state.liveThinking;
+    final approval = state.pendingApproval;
+    // extra live items rendered at the bottom of the reversed list
+    final extraCount =
+        (liveText != null ? 1 : 0) + (approval != null ? 1 : 0);
 
     return Stack(
       children: [
-        bubbles.isEmpty
+        bubbles.isEmpty && extraCount == 0
             ? _EmptyState(openMemories: widget.openMemories)
             : GestureDetector(
                 onTap: () => FocusScope.of(context).unfocus(),
@@ -63,17 +67,26 @@ class _ChatViewState extends State<ChatView> {
                     reverse: true,
                     controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
-                    itemCount: bubbles.length + (liveText != null ? 1 : 0),
+                    itemCount: bubbles.length + extraCount,
                     itemBuilder: (context, i) {
                       // reversed index
-                      final idx = bubbles.length + (liveText != null ? 1 : 0) - 1 - i;
+                      final idx = bubbles.length + extraCount - 1 - i;
+                      if (approval != null && idx == bubbles.length + 1) {
+                        return ApprovalCard(request: approval)
+                            .animate()
+                            .fadeIn(duration: 250.ms)
+                            .slideY(begin: 0.15, end: 0);
+                      }
                       if (liveText != null && idx == bubbles.length) {
-                        return MessageBubble(bubble: Bubble(
-                          id: 'live',
-                          kind: BubbleKind.assistant,
-                          text: liveText.isEmpty ? '' : liveText,
-                          streaming: true,
-                        ));
+                        return MessageBubble(
+                          bubble: Bubble(
+                            id: 'live',
+                            kind: BubbleKind.assistant,
+                            text: liveText.isEmpty ? '' : liveText,
+                            thinking: liveThinking,
+                            streaming: true,
+                          ),
+                        );
                       }
                       return MessageBubble(bubble: bubbles[idx]);
                     },

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools &amp; approvals — Dragon Agent Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><div class="inner">
+  <a class="brand" href="index.html">🔥 Dragon Agent</a>
+  <div class="links">
+    <a href="getting-started.html">Docs</a>
+    <a href="memory.html">Memory</a>
+    <a href="tools.html" class="active">Tools</a>
+    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="wrap docs-layout">
+  <aside class="docs-nav">
+    <a href="getting-started.html">Getting started</a>
+    <a href="providers.html">Providers &amp; models</a>
+    <a href="memory.html">Memory system</a>
+    <a href="tools.html" class="active">Tools &amp; approvals</a>
+    <a href="commands.html">Chat commands</a>
+    <a href="updates.html">Updating</a>
+    <a href="faq.html">FAQ</a>
+  </aside>
+
+  <main class="docs-body">
+    <span class="crumb">Documentation</span>
+    <h1>Tools &amp; approvals</h1>
+    <p>The agent doesn't just talk — it acts. Every tool call is visible as a
+    live activity chip in the chat: what ran, its arguments, its result and its
+    status (<em>running → done / denied / error</em>). Tap a chip to inspect the
+    raw JSON.</p>
+
+    <h2>Toolbox</h2>
+    <table>
+      <tr><th>Tool</th><th>What it does</th><th>Sensitive</th></tr>
+      <tr><td><code>save_memory</code></td><td>Stores a durable fact (Hybrid mode)</td><td>—</td></tr>
+      <tr><td><code>memory_write</code></td><td>Upserts bullets into outline sections (Outline mode)</td><td>—</td></tr>
+      <tr><td><code>list_memories</code></td><td>Dumps everything currently remembered</td><td>—</td></tr>
+      <tr><td><code>datetime</code></td><td>Current local date, time, weekday &amp; timezone</td><td>—</td></tr>
+      <tr><td><code>calculator</code></td><td>Exact arithmetic via a safe parser — no mental math slips</td><td>—</td></tr>
+      <tr><td><code>device_info</code></td><td>OS, version, locale, timezone, app version</td><td>—</td></tr>
+      <tr><td><code>forget_memory</code></td><td>Deletes a stored fact</td><td>🛡️ yes</td></tr>
+      <tr><td><code>memory_delete</code></td><td>Deletes outline entries / sections</td><td>🛡️ yes</td></tr>
+      <tr><td><code>remember_rule</code></td><td>Appends a standing rule to MEMORY.md</td><td>🛡️ yes</td></tr>
+    </table>
+
+    <h2>The approval gate</h2>
+    <p>When the agent calls a 🛡️ sensitive tool, the turn <strong>pauses</strong>
+    and an inline card appears with three choices:</p>
+    <ul>
+      <li><strong>Allow once</strong> — approve just this call.</li>
+      <li><strong>Always (session)</strong> — approve this tool for the rest of
+          the current session. The agent stops asking. Close the app or start a
+          new session and the gate re-arms.</li>
+      <li><strong>Deny</strong> — the call is refused; the agent receives
+          <code>{"denied": true}</code> and adapts instead of failing.</li>
+    </ul>
+    <div class="note"><b>Design rule:</b> reading and remembering is free;
+    <em>destroying or committing</em> your memory always asks. You can also deny
+    mid-flight — nothing executes before you decide.</div>
+
+    <h2>Watching it think</h2>
+    <p>With deep thinking enabled, reasoning streams into a golden
+    <strong>Thinking…</strong> pill above the answer — tap to expand the full
+    thought process. Tool chips, thinking and per-message token usage together
+    give you a complete flight recorder of every turn.</p>
+
+    <div class="pager">
+      <a href="memory.html"><span class="small">Previous</span>← Memory system</a>
+      <a href="commands.html" class="next"><span class="small">Next</span>Chat commands →</a>
+    </div>
+  </main>
+</div>
+
+<footer><div class="wrap inner">
+  <span>© 2026 mamad720220 · MIT</span>
+  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
+</div></footer>
+</body>
+</html>

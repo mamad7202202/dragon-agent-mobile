@@ -1,36 +1,72 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/graph_memory.dart';
 import '../data/llm.dart';
 import '../data/memory.dart';
 import '../data/models.dart';
 import '../data/sessions.dart';
 import '../services/update_service.dart';
 
-enum UpdatePhase { idle, checking, downloading, downloaded, error }
+enum MemoryMode { hybrid, outline }
+
+enum ApprovalDecision { once, session, deny }
+
+class ApprovalRequest {
+  final String callId;
+  final String tool;
+  final String argsJson;
+  final Completer<ApprovalDecision> completer;
+
+  ApprovalRequest({
+    required this.callId,
+    required this.tool,
+    required this.argsJson,
+    required this.completer,
+  });
+}
 
 class Settings {
   double temperature;
   int maxTokens;
-  int compactionAfter; // fold after this many wire entries
+  int compactionAfter;
   bool memoryEnabled;
+  int themeMode; // ThemeMode index: 0 system, 1 light, 2 dark
+  int thinking; // ThinkingLevel index
+  bool webSearch;
+  int memoryMode; // MemoryMode index: 0 hybrid, 1 outline
 
   Settings({
     this.temperature = 0.7,
     this.maxTokens = 2048,
     this.compactionAfter = 36,
     this.memoryEnabled = true,
+    this.themeMode = 2,
+    this.thinking = 0,
+    this.webSearch = false,
+    this.memoryMode = 0,
   });
+
+  ThemeMode get theme => ThemeMode.values[themeMode.clamp(0, 2)];
+  ThinkingLevel get thinkingLevel =>
+      ThinkingLevel.values[thinking.clamp(0, 3)];
+  MemoryMode get mode => MemoryMode.values[memoryMode.clamp(0, 1)];
 
   Map<String, dynamic> toJson() => {
         'temperature': temperature,
         'max_tokens': maxTokens,
         'compaction_after': compactionAfter,
         'memory_enabled': memoryEnabled,
+        'theme_mode': themeMode,
+        'thinking': thinking,
+        'web_search': webSearch,
+        'memory_mode': memoryMode,
       };
 
   factory Settings.fromJson(Map<String, dynamic> j) => Settings(
@@ -38,13 +74,21 @@ class Settings {
         maxTokens: (j['max_tokens'] as num?)?.toInt() ?? 2048,
         compactionAfter: (j['compaction_after'] as num?)?.toInt() ?? 36,
         memoryEnabled: j['memory_enabled'] as bool? ?? true,
+        themeMode: (j['theme_mode'] as num?)?.toInt() ?? 2,
+        thinking: (j['thinking'] as num?)?.toInt() ?? 0,
+        webSearch: j['web_search'] as bool? ?? false,
+        memoryMode: (j['memory_mode'] as num?)?.toInt() ?? 0,
       );
 }
+
+/// Tools that touch user data destructively — gated by an approval card.
+const sensitiveTools = {'forget_memory', 'memory_delete', 'remember_rule'};
 
 /// Central app controller.
 class AppState extends ChangeNotifier {
   final LlmClient _llm = LlmClient();
   final MemoryStore memory = MemoryStore();
+  final GraphMemoryStore graph = GraphMemoryStore();
   final SessionStore sessions = SessionStore();
 
   late SharedPreferences _prefs;
@@ -62,19 +106,14 @@ class AppState extends ChangeNotifier {
   // streaming state
   bool busy = false;
   String? liveText;
+  String? liveThinking;
+
+  // approvals
+  ApprovalRequest? pendingApproval;
+  final Set<String> _sessionAllowed = {};
 
   // navigation intents consumed by UI
   int memoriesOpenTick = 0;
-
-  bool get configured =>
-      providers.isNotEmpty &&
-      providers[activeProvider] != null &&
-      activeModel.isNotEmpty;
-
-  ProviderCfg? get cfg => providers[activeProvider];
-
-  /// True once init() finished loading persisted state.
-  bool ready = false;
 
   // ---- update state ----
   final UpdateService _updates = UpdateService();
@@ -90,83 +129,15 @@ class AppState extends ChangeNotifier {
   bool updateDismissed = false;
   String appVersion = '…';
 
-  Future<void> checkForUpdates({bool manual = false}) async {
-    if (updatePhase == UpdatePhase.checking ||
-        updatePhase == UpdatePhase.downloading) {
-      return;
-    }
-    if (!manual &&
-        DateTime.now().difference(_lastUpdateCheck) <
-            const Duration(minutes: 20)) {
-      return;
-    }
-    _lastUpdateCheck = DateTime.now();
-    updatePhase = UpdatePhase.checking;
-    lastUpdateNotice = null;
-    if (manual) notifyListeners();
-    try {
-      final info = await _updates.check(appVersion);
-      if (info != null) {
-        pendingUpdate = info;
-        updateDismissed = false;
-      } else {
-        pendingUpdate = null;
-        if (manual) lastUpdateNotice = 'You are on the latest version ($appVersion).';
-      }
-      updatePhase = UpdatePhase.idle;
-    } catch (e) {
-      updatePhase = UpdatePhase.idle;
-      if (manual) lastUpdateNotice = 'Update check failed — check your connection.';
-    }
-    notifyListeners();
-  }
+  bool get configured =>
+      providers.isNotEmpty &&
+      providers[activeProvider] != null &&
+      activeModel.isNotEmpty;
 
-  Future<void> downloadUpdate() async {
-    final info = pendingUpdate;
-    if (info == null || updatePhase == UpdatePhase.downloading) return;
-    updatePhase = UpdatePhase.downloading;
-    downloadProgress = 0;
-    updateError = null;
-    notifyListeners();
-    try {
-      downloadedApkPath = await _updates.download(
-        info.apkUrl,
-        (p) {
-          downloadProgress = p;
-          notifyListeners();
-        },
-      );
-      updatePhase = UpdatePhase.downloaded;
-    } catch (e) {
-      updatePhase = UpdatePhase.error;
-      updateError = e.toString();
-    }
-    notifyListeners();
-  }
+  ProviderCfg? get cfg => providers[activeProvider];
 
-  Future<void> installUpdate() async {
-    final path = downloadedApkPath;
-    if (path == null) return;
-    updateError = await _updates.install(path,
-        fallbackUrl: pendingUpdate?.releaseUrl);
-    if (updateError != null) notifyListeners();
-  }
-
-  void dismissUpdate() {
-    updateDismissed = true;
-    notifyListeners();
-  }
-
-  Future<void> _startUpdateWatch() async {
-    unawaited(checkForUpdates());
-    try {
-      _connectivitySub =
-          Connectivity().onConnectivityChanged.listen((results) {
-        if (results.contains(ConnectivityResult.none)) return;
-        unawaited(checkForUpdates());
-      });
-    } catch (_) {}
-  }
+  /// True once init() finished loading persisted state.
+  bool ready = false;
 
   Future<void> init() async {
     try {
@@ -190,6 +161,9 @@ class AppState extends ChangeNotifier {
   Future<void> _loadEverything() async {
     try {
       await memory.load();
+    } catch (_) {}
+    try {
+      await graph.load();
     } catch (_) {}
     try {
       await sessions.loadIndex();
@@ -286,8 +260,10 @@ class AppState extends ChangeNotifier {
   Future<void> resetEverything() async {
     await _prefs.clear();
     memory.clear();
+    graph.sections.clear();
     try {
       await memory.saveFacts();
+      await graph.save();
     } catch (_) {}
     for (final m in List<SessionMeta>.from(sessions.metas)) {
       await sessions.delete(m.id);
@@ -301,6 +277,38 @@ class AppState extends ChangeNotifier {
   }
 
   // ------------------------------------------------------------------
+  // approvals
+  // ------------------------------------------------------------------
+
+  Future<ApprovalDecision> _gateTool(String tool, String argsJson,
+      {required String callId}) async {
+    if (!sensitiveTools.contains(tool)) return ApprovalDecision.once;
+    if (_sessionAllowed.contains(tool)) return ApprovalDecision.session;
+
+    final completer = Completer<ApprovalDecision>();
+    pendingApproval = ApprovalRequest(
+      callId: callId,
+      tool: tool,
+      argsJson: argsJson,
+      completer: completer,
+    );
+    notifyListeners();
+    final decision = await completer.future;
+    pendingApproval = null;
+    notifyListeners();
+    return decision;
+  }
+
+  void resolveApproval(ApprovalDecision decision) {
+    final req = pendingApproval;
+    if (req == null) return;
+    if (decision == ApprovalDecision.session) {
+      _sessionAllowed.add(req.tool);
+    }
+    req.completer.complete(decision);
+  }
+
+  // ------------------------------------------------------------------
   // chat
   // ------------------------------------------------------------------
 
@@ -309,6 +317,7 @@ class AppState extends ChangeNotifier {
     current = await sessions.create();
     bubbles = [];
     liveText = null;
+    liveThinking = null;
     notifyListeners();
   }
 
@@ -366,17 +375,31 @@ class AppState extends ChangeNotifier {
       case '/remember':
         final fact = input.trim().substring('/remember'.length).trim();
         if (fact.isEmpty) return false;
-        final f = memory.add(fact);
-        appendLocalBubble(Bubble(
-          id: 'cmd-${f.id}',
-          kind: BubbleKind.toolUse,
-          toolName: 'save_memory',
-          toolArgs: '{"text": "$fact"}',
-        ));
+        if (settings.mode == MemoryMode.outline) {
+          final ids = graph.write('facts', [fact]);
+          appendLocalBubble(Bubble(
+            id: 'cmd-${ids.first}',
+            kind: BubbleKind.toolUse,
+            toolName: 'memory_write',
+            toolArgs: '{"section": "facts", "bullets": ["$fact"]}',
+            toolStatus: ToolStatus.ok,
+          ));
+        } else {
+          final f = memory.add(fact);
+          appendLocalBubble(Bubble(
+            id: 'cmd-${f.id}',
+            kind: BubbleKind.toolUse,
+            toolName: 'save_memory',
+            toolArgs: '{"text": "$fact"}',
+            toolStatus: ToolStatus.ok,
+          ));
+        }
         return true;
       case '/forget':
         final id = input.trim().substring('/forget'.length).trim();
-        final ok = memory.remove(id);
+        final ok = settings.mode == MemoryMode.outline
+            ? graph.remove(id: id)
+            : memory.remove(id);
         appendLocalBubble(Bubble(
           id: 'cmd-forget-$id',
           kind: ok ? BubbleKind.assistant : BubbleKind.error,
@@ -385,10 +408,12 @@ class AppState extends ChangeNotifier {
         return true;
       case '/clear':
         memory.clear();
+        graph.sections.clear();
         appendLocalBubble(const Bubble(
           id: 'cmd-clear',
           kind: BubbleKind.assistant,
-          text: 'All facts cleared. MEMORY.md is kept — edit it in **Memories → Rules**.',
+          text:
+              'All facts cleared. MEMORY.md is kept — edit it in **Memories → Rules**.',
         ));
         return true;
     }
@@ -402,7 +427,6 @@ class AppState extends ChangeNotifier {
 
     current ??= await sessions.create();
 
-    // user turn
     current!.wire.add(Wire.user(text));
     bubbles = [
       ...bubbles,
@@ -414,22 +438,28 @@ class AppState extends ChangeNotifier {
     await runTurn();
   }
 
-  /// Agent loop: stream a turn, execute memory tools, repeat up to N rounds.
+  /// Agent loop: stream a turn, gate + execute tools, repeat up to N rounds.
   Future<void> runTurn() async {
     final session = current!;
     busy = true;
     liveText = null;
-    var assistantBuf = StringBuffer();
+    liveThinking = null;
+    var lastNotify = DateTime.fromMillisecondsSinceEpoch(0);
 
-    void flush({bool done = false}) {
-      liveText = done ? null : assistantBuf.toString();
-      notifyListeners();
+    void throttledNotify() {
+      final now = DateTime.now();
+      if (now.difference(lastNotify).inMilliseconds >= 60) {
+        lastNotify = now;
+        notifyListeners();
+      }
     }
 
     try {
-      for (var round = 0; round < 4; round++) {
-        assistantBuf = StringBuffer();
+      for (var round = 0; round < 5; round++) {
+        final assistantBuf = StringBuffer();
+        final thinkingBuf = StringBuffer();
         final calls = <ToolCall>[];
+        MsgUsage? usage;
 
         await _llm.streamTurn(
           cfg: cfg!,
@@ -438,79 +468,152 @@ class AppState extends ChangeNotifier {
           wire: session.wire,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
+          thinking: settings.thinkingLevel,
+          webSearch: settings.webSearch && cfg!.supportsWebSearch,
+          toolDefs: _activeToolDefs(),
           onEvent: (e) {
             switch (e) {
               case DeltaText():
                 assistantBuf.write(e.text);
-                flush();
+                liveText = assistantBuf.toString();
+                throttledNotify();
+              case DeltaThinking():
+                thinkingBuf.write(e.text);
+                liveThinking = thinkingBuf.toString();
+                throttledNotify();
+              case UsageReported():
+                usage = e.usage;
               case ToolRequested():
                 calls.add(e.call);
-              case ToolFinished():
-                break;
             }
           },
         );
 
         final text = assistantBuf.toString().trim();
+        final thinking = thinkingBuf.toString().trim();
 
         if (calls.isEmpty) {
-          session.wire.add(Wire.assistant(text));
-          bubbles = [...bubbles, Bubble(
-            id: 'a${session.wire.length}',
-            kind: BubbleKind.assistant,
-            text: text.isEmpty ? '_(empty response)_' : text,
-          )];
+          session.wire.add(Wire.assistant(text, thinking: thinking));
+          bubbles = [
+            ...bubbles,
+            Bubble(
+              id: 'a${session.wire.length}',
+              kind: BubbleKind.assistant,
+              text: text.isEmpty ? '_(empty response)_' : text,
+              thinking: thinking.isEmpty ? null : thinking,
+              usage: usage,
+            ),
+          ];
           break;
         }
 
-        // record any text before tool use
-        if (text.isNotEmpty) {
-          session.wire.add(Wire.assistant(text));
-          bubbles = [...bubbles, Bubble(
-            id: 'at${session.wire.length}',
-            kind: BubbleKind.assistant,
-            text: text,
-          )];
+        if (text.isNotEmpty || thinking.isNotEmpty) {
+          session.wire.add(Wire.assistant(text, thinking: thinking));
+          bubbles = [
+            ...bubbles,
+            Bubble(
+              id: 'at${session.wire.length}',
+              kind: BubbleKind.assistant,
+              text: text,
+              thinking: thinking.isEmpty ? null : thinking,
+              usage: usage,
+            ),
+          ];
         }
 
-        // execute tools
+        // live "running" chips so the user sees activity during gate + exec
+        for (final call in calls) {
+          bubbles = [
+            ...bubbles,
+            Bubble(
+              id: 'live-tool-${call.id}',
+              kind: BubbleKind.toolUse,
+              toolName: call.name,
+              toolArgs: call.argsJson,
+              toolStatus: ToolStatus.running,
+            ),
+          ];
+        }
+        notifyListeners();
+
         final executed = <Map<String, String>>[];
         for (final call in calls) {
-          final out = _execTool(call);
+          final decision = await _gateTool(call.name, call.argsJson,
+              callId: call.id);
+          String out;
+          if (decision == ApprovalDecision.deny) {
+            out = jsonEncode({
+              'ok': false,
+              'denied': true,
+              'reason': 'the user denied this action',
+            });
+          } else {
+            if (decision == ApprovalDecision.session) {
+              _sessionAllowed.add(call.name);
+            }
+            out = _execTool(call);
+          }
           executed.add({'id': call.id, 'name': call.name, 'out': out});
-          bubbles = [...bubbles, Bubble(
-            id: 'tool-${call.id}',
-            kind: BubbleKind.toolUse,
-            toolName: call.name,
-            toolArgs: call.argsJson,
-          )];
         }
+
         session.wire.add(Wire.assistantToolCalls(
-          calls.map((c) => {'id': c.id, 'name': c.name, 'args': c.argsJson}).toList(),
+          calls
+              .map((c) => {'id': c.id, 'name': c.name, 'args': c.argsJson})
+              .toList(),
         ));
         session.wire.add(Wire.toolResults(executed));
-        await memory.saveFacts();
+        await _saveMemoryStores();
+        bubbles = deriveBubbles(session.wire);
+        notifyListeners();
       }
 
       unawaited(sessions.persist(session));
       await maybeCompact();
     } on LlmException catch (e) {
-      bubbles = [...bubbles, Bubble(
-        id: 'err${DateTime.now().millisecondsSinceEpoch}',
-        kind: BubbleKind.error,
-        text: e.message,
-      )];
+      bubbles = [
+        ...bubbles,
+        Bubble(
+          id: 'err${DateTime.now().millisecondsSinceEpoch}',
+          kind: BubbleKind.error,
+          text: e.message,
+        ),
+      ];
     } catch (e) {
-      bubbles = [...bubbles, Bubble(
-        id: 'err${DateTime.now().millisecondsSinceEpoch}',
-        kind: BubbleKind.error,
-        text: e.toString(),
-      )];
+      bubbles = [
+        ...bubbles,
+        Bubble(
+          id: 'err${DateTime.now().millisecondsSinceEpoch}',
+          kind: BubbleKind.error,
+          text: e.toString(),
+        ),
+      ];
     } finally {
       busy = false;
       liveText = null;
+      liveThinking = null;
       notifyListeners();
     }
+  }
+
+  List<Map<String, Object>> _activeToolDefs() {
+    final defs = List<Map<String, Object>>.from(_extraToolDefs);
+    if (!settings.memoryEnabled) return defs;
+    if (settings.mode == MemoryMode.outline) {
+      defs.addAll(_outlineToolDefs);
+    } else {
+      defs.addAll(_memoryToolDefs);
+    }
+    return defs;
+  }
+
+  Future<void> _saveMemoryStores() async {
+    try {
+      if (settings.mode == MemoryMode.outline) {
+        await graph.save();
+      } else {
+        await memory.saveFacts();
+      }
+    } catch (_) {}
   }
 
   String _execTool(ToolCall call) {
@@ -522,13 +625,94 @@ class AppState extends ChangeNotifier {
         case 'save_memory':
           final fact = memory.add(
             args['text'] as String? ?? '',
-            importance:
-                ((args['importance'] as num?)?.toDouble()) ?? 0.5,
+            importance: ((args['importance'] as num?)?.toDouble()) ?? 0.5,
           );
           return jsonEncode({'ok': true, 'id': fact.id});
         case 'forget_memory':
           final ok = memory.remove(args['id'] as String? ?? '');
           return jsonEncode({'ok': ok});
+        case 'memory_write':
+          final section = args['section'] as String? ?? 'facts';
+          final bullets =
+              (args['bullets'] as List?)?.cast<String>() ?? const [];
+          final ids = graph.write(section, bullets);
+          return jsonEncode({'ok': true, 'section': section, 'ids': ids});
+        case 'memory_delete':
+          final ok = graph.remove(
+            id: args['id'] as String?,
+            section: args['section'] as String?,
+          );
+          return jsonEncode({'ok': ok});
+        case 'memory_read':
+          return jsonEncode({
+            'ok': true,
+            'outline': graph.outline(maxChars: 3000),
+            'full': graph.listAll(),
+          });
+        case 'list_memories':
+          if (settings.mode == MemoryMode.outline) {
+            return jsonEncode({'ok': true, 'memory': graph.listAll()});
+          }
+          final buf = StringBuffer();
+          for (final f in memory.all) {
+            buf.writeln('- (${f.id}) ${f.content}');
+          }
+          return jsonEncode({
+            'ok': true,
+            'memory': buf.toString().trim().isEmpty
+                ? '(memory is empty)'
+                : buf.toString().trim(),
+          });
+        case 'remember_rule':
+          final rule = (args['rule'] as String? ?? '').trim();
+          if (rule.isEmpty) {
+            return jsonEncode({'ok': false, 'error': 'empty rule'});
+          }
+          final current = memory.procedural;
+          final updated =
+              current.isEmpty ? '- $rule' : '$current\n- $rule';
+          memory.saveProcedural(updated);
+          return jsonEncode({'ok': true, 'rule': rule});
+        case 'datetime':
+          final now = DateTime.now();
+          final offset = now.timeZoneOffset;
+          final sign = offset.isNegative ? '-' : '+';
+          return jsonEncode({
+            'ok': true,
+            'local': now.toIso8601String(),
+            'weekday': [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday'
+            ][now.weekday - 1],
+            'timezone': 'UTC$sign${offset.inHours}:${(offset.inMinutes.abs() % 60).toString().padLeft(2, '0')}',
+          });
+        case 'calculator':
+          final expr = args['expression'] as String? ?? '';
+          final value = _calc(expr);
+          if (value == null) {
+            return jsonEncode({'ok': false, 'error': 'cannot parse "$expr"'});
+          }
+          return jsonEncode({
+            'ok': true,
+            'expression': expr,
+            'result': value == value.roundToDouble()
+                ? value.round().toString()
+                : value.toStringAsFixed(6),
+          });
+        case 'device_info':
+          return jsonEncode({
+            'ok': true,
+            'os': Platform.operatingSystem,
+            'osVersion': Platform.operatingSystemVersion,
+            'locale': Platform.localeName,
+            'timezoneOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+            'app': 'Dragon Agent Mobile v$appVersion',
+          });
         default:
           return jsonEncode({'error': 'unknown tool ${call.name}'});
       }
@@ -537,32 +721,172 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ---- tiny safe arithmetic evaluator (no eval) ----
+
+  double? _calc(String input) {
+    final src = input.replaceAll('×', '*').replaceAll('÷', '/').trim();
+    if (src.isEmpty || src.length > 200) return null;
+    final tokens = <String>[];
+    var i = 0;
+    while (i < src.length) {
+      final c = src[i];
+      if (c == ' ') {
+        i++;
+        continue;
+      }
+      if ('+-*/%^()'.contains(c)) {
+        tokens.add(c);
+        i++;
+      } else if ('0123456789.'.contains(c)) {
+        var j = i;
+        while (j < src.length && '0123456789.'.contains(src[j])) {
+          j++;
+        }
+        tokens.add(src.substring(i, j));
+        i = j;
+      } else {
+        return null;
+      }
+    }
+    var pos = 0;
+    String? peek() => pos < tokens.length ? tokens[pos] : null;
+    String eat() => tokens[pos++];
+
+    double? parseExpr() {
+      var left = parseTerm();
+      if (left == null) return null;
+      while (peek() == '+' || peek() == '-') {
+        final op = eat();
+        final right = parseTerm();
+        if (right == null) return null;
+        left = op == '+' ? left + right : left - right;
+      }
+      return left;
+    }
+
+    double? parseTerm() {
+      var left = parsePower();
+      if (left == null) return null;
+      while (peek() == '*' || peek() == '/' || peek() == '%') {
+        final op = eat();
+        final right = parsePower();
+        if (right == null) return null;
+        if (op == '*') {
+          left = left * right;
+        } else if (op == '/') {
+          if (right == 0) return null;
+          left = left / right;
+        } else {
+          if (right == 0) return null;
+          left = left % right;
+        }
+      }
+      return left;
+    }
+
+    double? parsePower() {
+      final base = parseUnary();
+      if (base == null) return null;
+      if (peek() == '^') {
+        eat();
+        final exp = parsePower();
+        if (exp == null) return null;
+        return math.pow(base, exp).toDouble();
+      }
+      return base;
+    }
+
+    double? parseUnary() {
+      if (peek() == '-') {
+        eat();
+        final v = parseUnary();
+        return v == null ? null : -v;
+      }
+      if (peek() == '+') {
+        eat();
+        return parseUnary();
+      }
+      return parseAtom();
+    }
+
+    double? parseAtom() {
+      final t = peek();
+      if (t == null) return null;
+      if (t == '(') {
+        eat();
+        final v = parseExpr();
+        if (v == null || peek() != ')') return null;
+        eat();
+        return v;
+      }
+      final num = double.tryParse(eat());
+      return num;
+    }
+
+    final result = parseExpr();
+    if (result == null || pos != tokens.length) return null;
+    return result;
+  }
+
+  // ------------------------------------------------------------------
+  // system prompt
+  // ------------------------------------------------------------------
+
   String _buildSystem(SessionData session) {
     final buf = StringBuffer();
-    buf.writeln('You are Dragon Agent, a sharp, warm and concise AI assistant '
-        'living inside the user\'s pocket. You have a persistent memory.');
-    buf.writeln();
-    buf.writeln('MEMORY TOOLS — you carry two tools:');
-    buf.writeln('- save_memory(text, importance): store durable facts about '
-        'the user, their projects or decisions. Use it whenever you notice '
-        'something worth remembering across sessions (preferences, names, '
-        'goals, corrections). Do not store trivial chatter.');
-    buf.writeln('- forget_memory(id): remove an obsolete fact by id prefix.');
+    buf.writeln(
+        'You are Dragon Agent, a sharp, warm and concise AI assistant living '
+        "inside the user's pocket. You have a persistent memory and a set of "
+        'tools. Use tools whenever they help; prefer acting over asking.');
+
     if (settings.memoryEnabled) {
-      final facts = memory.all;
-      if (facts.isNotEmpty) {
+      if (settings.mode == MemoryMode.outline) {
         buf.writeln();
-        buf.writeln('[KNOWN FACTS]');
-        for (final f in facts) {
-          buf.writeln('- (${f.id}) ${f.content}');
+        buf.writeln('MEMORY SYSTEM — OUTLINE MODE');
+        buf.writeln(
+            'Long-term memory is a compact hierarchical outline of sections '
+            'and one-line bullets (profile, preferences, projects, people, '
+            'goals, facts — you may create new sections).');
+        buf.writeln('- When you learn something durable, upsert it with '
+            'memory_write. Bullets must stand alone, ≤140 chars.');
+        buf.writeln('- Keep it tidy: delete stale entries with memory_delete '
+            '(the user approves destructive actions).');
+        buf.writeln('- The outline below IS your current memory — trust it, '
+            'and keep it accurate. It costs very few tokens, so keep bullets '
+            'dense.');
+        final outline = graph.outline();
+        if (outline.isNotEmpty) {
+          buf.writeln().writeln(outline);
+        }
+      } else {
+        buf.writeln();
+        buf.writeln('MEMORY TOOLS — you carry two tools:');
+        buf.writeln('- save_memory(text, importance): store durable facts '
+            'about the user, their projects or decisions. Use it whenever you '
+            'notice something worth remembering across sessions (preferences, '
+            'names, goals, corrections). Do not store trivial chatter.');
+        buf.writeln('- forget_memory(id): remove an obsolete fact by id '
+            'prefix.');
+        final facts = memory.all;
+        if (facts.isNotEmpty) {
+          buf.writeln();
+          buf.writeln('[KNOWN FACTS]');
+          for (final f in facts) {
+            buf.writeln('- (${f.id}) ${f.content}');
+          }
         }
       }
       final procedural = memory.proceduralBlock();
       if (procedural != null) {
-        buf.writeln();
-        buf.writeln(procedural);
+        buf.writeln().writeln(procedural);
       }
     }
+
+    buf.writeln();
+    buf.writeln('OTHER TOOLS: datetime (current time), calculator (exact '
+        'arithmetic), list_memories (inspect memory), device_info, and '
+        'remember_rule (persistent user rules — sensitive).');
+
     if (session.wire.where((m) => m['r'] == 's').isNotEmpty) {
       buf.writeln();
       buf.writeln('(Earlier parts of this conversation were compacted into '
@@ -580,7 +904,6 @@ class AppState extends ChangeNotifier {
     if (busy) return;
 
     const keepRecent = 8;
-    // find split index over full wire so that recent conversational turns stay
     final idxUserAssistant = <int>[];
     for (var i = 0; i < session.wire.length; i++) {
       final r = session.wire[i]['r'];
@@ -592,7 +915,8 @@ class AppState extends ChangeNotifier {
     final old = session.wire.sublist(0, cutWireIdx);
     final recent = session.wire.sublist(cutWireIdx);
 
-    final transcript = StringBuffer('Transcript of an earlier conversation:\n\n');
+    final transcript =
+        StringBuffer('Transcript of an earlier conversation:\n\n');
     for (final m in old) {
       final r = m['r'] as String?;
       if (r == 'u') {
@@ -635,6 +959,94 @@ class AppState extends ChangeNotifier {
 
   void _rebuildBubbles() {
     bubbles = deriveBubbles(current?.wire ?? []);
+  }
+
+  // ------------------------------------------------------------------
+  // updates
+  // ------------------------------------------------------------------
+
+  Future<void> checkForUpdates({bool manual = false}) async {
+    if (updatePhase == UpdatePhase.checking ||
+        updatePhase == UpdatePhase.downloading) {
+      return;
+    }
+    if (!manual &&
+        DateTime.now().difference(_lastUpdateCheck) <
+            const Duration(minutes: 20)) {
+      return;
+    }
+    _lastUpdateCheck = DateTime.now();
+    updatePhase = UpdatePhase.checking;
+    lastUpdateNotice = null;
+    if (manual) notifyListeners();
+    try {
+      final info = await _updates.check(appVersion);
+      if (info != null) {
+        pendingUpdate = info;
+        updateDismissed = false;
+      } else {
+        pendingUpdate = null;
+        if (manual) {
+          lastUpdateNotice =
+              'You are on the latest version ($appVersion).';
+        }
+      }
+      updatePhase = UpdatePhase.idle;
+    } catch (e) {
+      updatePhase = UpdatePhase.idle;
+      if (manual) {
+        lastUpdateNotice =
+            'Update check failed — check your connection.';
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> downloadUpdate() async {
+    final info = pendingUpdate;
+    if (info == null || updatePhase == UpdatePhase.downloading) return;
+    updatePhase = UpdatePhase.downloading;
+    downloadProgress = 0;
+    updateError = null;
+    notifyListeners();
+    try {
+      downloadedApkPath = await _updates.download(
+        info.apkUrl,
+        (p) {
+          downloadProgress = p;
+          notifyListeners();
+        },
+      );
+      updatePhase = UpdatePhase.downloaded;
+    } catch (e) {
+      updatePhase = UpdatePhase.error;
+      updateError = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> installUpdate() async {
+    final path = downloadedApkPath;
+    if (path == null) return;
+    updateError = await _updates.install(path,
+        fallbackUrl: pendingUpdate?.releaseUrl);
+    if (updateError != null) notifyListeners();
+  }
+
+  void dismissUpdate() {
+    updateDismissed = true;
+    notifyListeners();
+  }
+
+  Future<void> _startUpdateWatch() async {
+    unawaited(checkForUpdates());
+    try {
+      _connectivitySub =
+          Connectivity().onConnectivityChanged.listen((results) {
+        if (results.contains(ConnectivityResult.none)) return;
+        unawaited(checkForUpdates());
+      });
+    } catch (_) {}
   }
 
   @override

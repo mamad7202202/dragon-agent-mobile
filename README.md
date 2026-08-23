@@ -17,8 +17,13 @@
 memory, zero desktop required.*
 
 [![Build & Release](https://github.com/mamad7202202/dragon-agent-mobile/actions/workflows/build.yml/badge.svg)](https://github.com/mamad7202202/dragon-agent-mobile/actions/workflows/build.yml)
+[![Docs](https://img.shields.io/badge/docs-mamad7202202.github.io%2Fdragon--agent--mobile-ff6a3d)](https://mamad7202202.github.io/dragon-agent-mobile/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-ff6a3d.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter)](https://flutter.dev)
+
+**📖 Full documentation & landing page:
+[mamad7202202.github.io/dragon-agent-mobile](https://mamad7202202.github.io/dragon-agent-mobile/)**
+— getting started, providers, memory engines, tools, commands, FAQ.
 
 </div>
 
@@ -42,10 +47,15 @@ Mobile** ports the desktop app's *hybrid memory system* to your pocket:
 | | |
 |---|---|
 | **Bring your own key** | Google AI Studio, OpenRouter, OpenAI, Anthropic (native), Groq, DeepSeek, Ollama / LM Studio over LAN, or any OpenAI-compatible endpoint |
-| **Real tool use** | The agent calls `save_memory` / `forget_memory` on its own; live tool-activity chips show what it's doing |
+| **Deep thinking** | Reasoning-effort levels (Off → Deep) with a collapsible thought-process viewer; native Anthropic thinking budgets |
+| **Web search** | Native per provider — OpenRouter `:online`, Anthropic server-side `web_search` |
+| **Token awareness** | Per-message usage badge reported by the provider — subtle, never noisy |
+| **Approval gate** | Sensitive tools (forget/delete/rules) pause for an inline Allow / Always-this-session / Deny card |
+| **Real tool use** | Memory tools, exact calculator, datetime, device info — live activity chips with status & results |
+| **Two memory engines** | Hybrid scored facts **or** the new token-efficient Outline (infographic) memory — switchable in Settings |
+| **Light & dark** | Full theme modes with liquid-glass surfaces, floating composer and a soft bottom fade into the typing bar |
 | **Streaming** | Token-by-token responses with SSE for both OpenAI-compatible and Anthropic-native protocols |
 | **Auto-update** | Checks GitHub releases on connect; one tap downloads & installs over the current version — no uninstall needed |
-| **Ember-lit UI** | Material 3 dark theme, molten-orange gradients, animated flame logo, smooth 60 fps transitions |
 | **Private by default** | Keys, memories and transcripts live only on your device |
 
 ## Install
@@ -118,17 +128,21 @@ across builds. Don't reuse it anywhere sensitive.
 lib/
 ├── core/
 │   ├── presets.dart        provider presets (mirrors desktop presets.rs)
-│   └── theme.dart          ember-lit Material 3 theme
+│   └── theme.dart          ember-lit Material 3 theme (light + dark)
 ├── data/
-│   ├── llm.dart            streaming client: OpenAI-compat + Anthropic-native + tools
+│   ├── llm.dart            streaming client: thinking, web search, usage, tools
 │   ├── memory.dart         semantic facts + MEMORY.md + cosine recall scoring
+│   ├── graph_memory.dart   outline (infographic) memory — sections & bullets
 │   ├── models.dart         neutral wire format → display bubbles
 │   └── sessions.dart       episodic JSON transcripts
+├── services/
+│   └── update_service.dart GitHub releases check, download & install
 ├── state/
-│   └── app_state.dart      agent loop, slash commands, auto-compaction
+│   └── app_state.dart      agent loop, tool gate, slash commands, compaction
 └── ui/
     ├── screens/            chat, setup wizard, memories, sessions, settings
-    └── widgets/            bubbles, composer, flame logo, ember particles
+    └── widgets/            bubbles, glass surfaces, code blocks, flame logo
+docs/                       GitHub Pages site (landing + full documentation)
 ```
 
 ### Memory scoring (identical formula to desktop)

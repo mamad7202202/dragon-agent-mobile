@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Updating — Dragon Agent Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><div class="inner">
+  <a class="brand" href="index.html">🔥 Dragon Agent</a>
+  <div class="links">
+    <a href="getting-started.html">Docs</a>
+    <a href="memory.html">Memory</a>
+    <a href="tools.html">Tools</a>
+    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="wrap docs-layout">
+  <aside class="docs-nav">
+    <a href="getting-started.html">Getting started</a>
+    <a href="providers.html">Providers &amp; models</a>
+    <a href="memory.html">Memory system</a>
+    <a href="tools.html">Tools &amp; approvals</a>
+    <a href="commands.html">Chat commands</a>
+    <a href="updates.html" class="active">Updating</a>
+    <a href="faq.html">FAQ</a>
+  </aside>
+
+  <main class="docs-body">
+    <span class="crumb">Documentation</span>
+    <h1>Updating</h1>
+    <p>The app updates itself — no Play Store, no reinstalls.</p>
+
+    <h2>How it works</h2>
+    <ol>
+      <li>Whenever your device comes online (and once at launch) the app checks
+          the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/tag/latest">rolling
+          <code>latest</code> release</a> on GitHub.</li>
+      <li>If a newer <code>X.Y.Z</code> exists, a banner slides in over the
+          chat. Manual checks also live in Settings → <em>Check for updates</em>.</li>
+      <li>Tap <strong>به‌روزرسانی / Update</strong> → the APK downloads with a
+          live progress bar → tap <strong>Install</strong>.</li>
+      <li>The system installer opens; the new version installs
+          <strong>on top of</strong> the current one. Your keys, memories,
+          outline, rules and sessions all survive.</li>
+    </ol>
+
+    <h2>Why updates stack cleanly</h2>
+    <p>Every release is signed with the same committed keystore and ships the
+    same <code>applicationId</code> with a monotonically increasing version
+    code — Android treats each build as a normal in-place upgrade.</p>
+    <div class="note"><b>One-time note:</b> if you installed a very early build
+    (v1.0.x) signed before the stable key existed, uninstall it once and install
+    v1.1.0+ fresh. Every build after that updates over the previous forever.</div>
+
+    <h2>Versioning scheme</h2>
+    <ul>
+      <li><code>X.Y.Z</code> — semantic version, source of truth in
+          <code>pubspec.yaml</code>.</li>
+      <li><code>+N</code> — Android build number, bumped every release so the
+          installer always accepts the newer package.</li>
+      <li>Every push to <code>main</code> is tagged <code>vX.Y.Z</code> and
+          published both as a formal release and as the rolling
+          <code>latest</code>.</li>
+    </ul>
+
+    <h2>iOS</h2>
+    <p>Apple doesn't allow in-app self-installation of IPAs, so on iOS the
+    update banner opens the releases page — re-sideload with Sideloadly/AltStore
+    as usual.</p>
+
+    <div class="pager">
+      <a href="commands.html"><span class="small">Previous</span>← Commands</a>
+      <a href="faq.html" class="next"><span class="small">Next</span>FAQ →</a>
+    </div>
+  </main>
+</div>
+
+<footer><div class="wrap inner">
+  <span>© 2026 mamad720220 · MIT</span>
+  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
+</div></footer>
+</body>
+</html>

@@ -48,7 +48,7 @@ class DragonAgentApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: buildDragonTheme(Brightness.light),
             darkTheme: buildDragonTheme(Brightness.dark),
-            themeMode: ThemeMode.dark,
+            themeMode: state.ready ? state.settings.theme : ThemeMode.dark,
             home: AnimatedSwitcher(
               duration: const Duration(milliseconds: 450),
               switchInCurve: Curves.easeOutCubic,

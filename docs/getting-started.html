@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting started — Dragon Agent Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><div class="inner">
+  <a class="brand" href="index.html">🔥 Dragon Agent</a>
+  <div class="links">
+    <a href="getting-started.html" class="active">Docs</a>
+    <a href="memory.html">Memory</a>
+    <a href="tools.html">Tools</a>
+    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="wrap docs-layout">
+  <aside class="docs-nav">
+    <a href="getting-started.html" class="active">Getting started</a>
+    <a href="providers.html">Providers &amp; models</a>
+    <a href="memory.html">Memory system</a>
+    <a href="tools.html">Tools &amp; approvals</a>
+    <a href="commands.html">Chat commands</a>
+    <a href="updates.html">Updating</a>
+    <a href="faq.html">FAQ</a>
+  </aside>
+
+  <main class="docs-body">
+    <span class="crumb">Documentation</span>
+    <h1>Getting started</h1>
+    <p>From download to your first conversation in about a minute.</p>
+
+    <h2>1 · Install</h2>
+    <p>Grab the newest build straight from CI — nothing is compiled on your machine:</p>
+    <ul>
+      <li><strong>Android</strong> → open the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">latest release</a>
+          and download <code>Dragon-Agent-android-arm64.apk</code> (or <code>-universal</code> for older/rare devices), then sideload it.</li>
+      <li><strong>iOS</strong> → download <code>Dragon-Agent-iOS-unsigned.ipa</code> and install it with
+          <a href="https://sideloadly.io">Sideloadly</a> or AltStore, or sign it yourself in Xcode.</li>
+    </ul>
+
+    <h2>2 · Pick a provider</h2>
+    <p>On first launch the setup wizard walks you through three steps. Step one
+    is choosing where your intelligence comes from:</p>
+    <ul>
+      <li><strong>Google AI Studio</strong> — generous free tier, great default.</li>
+      <li><strong>OpenRouter</strong> — 400+ models behind one key.</li>
+      <li><strong>OpenAI · Anthropic · Groq · DeepSeek</strong> — first-party APIs.</li>
+      <li><strong>Ollama / LM Studio</strong> — local models, fully offline (see below).</li>
+      <li><strong>Custom</strong> — any OpenAI-compatible endpoint.</li>
+    </ul>
+    <p>Full details and key links live on the <a href="providers.html">Providers page</a>.</p>
+
+    <h2>3 · Connect</h2>
+    <p>The base URL is pre-filled for every preset — you only paste your API key.
+    Keys are stored exclusively on your device and sent directly to the provider;
+    Dragon has no backend and no telemetry.</p>
+    <div class="note"><b>Local models:</b> your phone can't reach <code>localhost</code>
+    of your PC. Replace it with your computer's LAN IP, e.g.
+    <code>http://192.168.1.10:11434/v1</code> for Ollama. The app is allowed to use
+    cleartext HTTP for exactly this reason.</div>
+
+    <h2>4 · Pick a model &amp; start</h2>
+    <p>Suggested models appear as chips per provider, or type any model id.
+    After the wizard you land in the chat — try one of the starter prompts, or
+    say <em>“Remember that my sister's name is Sara”</em> and watch the memory
+    tools fire.</p>
+
+    <h2>5 · Make it yours</h2>
+    <ul>
+      <li><strong>Settings → Appearance</strong> — light / dark / system theme.</li>
+      <li><strong>Settings → Intelligence</strong> — deep-thinking level, web search, temperature.</li>
+      <li><strong>Settings → Memory</strong> — choose the Hybrid or Outline engine.</li>
+      <li>Tap the model chip in the top bar to switch models mid-session.</li>
+    </ul>
+
+    <div class="pager">
+      <a href="providers.html" class="next"><span class="small">Next</span>Providers &amp; models →</a>
+    </div>
+  </main>
+</div>
+
+<footer><div class="wrap inner">
+  <span>© 2026 mamad720220 · MIT</span>
+  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
+</div></footer>
+</body>
+</html>

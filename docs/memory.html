@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory system — Dragon Agent Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><div class="inner">
+  <a class="brand" href="index.html">🔥 Dragon Agent</a>
+  <div class="links">
+    <a href="getting-started.html">Docs</a>
+    <a href="memory.html" class="active">Memory</a>
+    <a href="tools.html">Tools</a>
+    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="wrap docs-layout">
+  <aside class="docs-nav">
+    <a href="getting-started.html">Getting started</a>
+    <a href="providers.html">Providers &amp; models</a>
+    <a href="memory.html" class="active">Memory system</a>
+    <a href="tools.html">Tools &amp; approvals</a>
+    <a href="commands.html">Chat commands</a>
+    <a href="updates.html">Updating</a>
+    <a href="faq.html">FAQ</a>
+  </aside>
+
+  <main class="docs-body">
+    <span class="crumb">Documentation</span>
+    <h1>The memory system</h1>
+    <p>Dragon offers two swappable memory engines. Both are on-device, work
+    offline, and are always available to the model during every turn.</p>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="icon">🧠</div>
+        <h3>Hybrid (classic)</h3>
+        <p>Semantic facts scored per-turn with lexical cosine similarity ×
+        importance × a two-week recency decay, plus MEMORY.md rules and
+        resumable sessions. Rich, fuzzy, battle-tested.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🗺️</div>
+        <h3>Outline (infographic)</h3>
+        <p>Memory as hierarchical sections of one-line bullets — profile,
+        preferences, projects, people, goals, facts. Injected as a compact
+        outline so the model spends a few hundred tokens, not thousands.</p>
+      </div>
+    </div>
+
+    <h2>Choosing an engine</h2>
+    <p>Settings → Memory → <strong>Memory engine</strong>. Switching is instant
+    and non-destructive: both stores live side by side on disk
+    (<code>facts.json</code> and <code>graph_memory.json</code>), so you can flip
+    back and forth. MEMORY.md rules and sessions are shared by both engines.</p>
+
+    <h2>How Outline mode works</h2>
+    <p>The model maintains the outline itself through tools, and the whole
+    structure is re-injected every turn:</p>
+    <pre><code>[MEMORY OUTLINE]
+profile: Name is Mamad; Lives in Tehran; Works on AI agents;
+preferences: Answers in Persian; Prefers dark UI;
+projects: Dragon Agent — Rust desktop agent; Mobile port in Flutter;
+people: Sister called Sara;
+goals: Ship Play Store release this year;</code></pre>
+    <ul>
+      <li><strong>memory_write(section, bullets)</strong> — upserts one-liners
+          (≤140 chars). Identical or near-identical bullets are refreshed, never
+          duplicated.</li>
+      <li><strong>memory_delete(id | section)</strong> — removes stale entries
+          (gated behind user approval).</li>
+      <li><strong>memory_read()</strong> — dumps the full outline for auditing.</li>
+    </ul>
+
+    <h3>Why it's token-efficient without being lossy</h3>
+    <ul>
+      <li>Every bullet is <strong>self-contained</strong> — no dangling context
+          across entries.</li>
+      <li>Sections are ranked against your message when the outline grows, so
+          truncation (if any) drops the least relevant sections first, never
+          mid-thought.</li>
+      <li>Dedupe + 160-char cap keep the outline dense instead of sprawling.</li>
+      <li>Anything too rich for a bullet still belongs in MEMORY.md rules or the
+          session transcript — outline mode doesn't replace those.</li>
+    </ul>
+
+    <h2>How Hybrid mode works</h2>
+    <pre><code>score = tf_cosine(query, fact)
+      × (0.55 + 0.45 × importance)
+      × (0.7  + 0.3  × recency)      recency = 1 / (1 + age_days / 14)</code></pre>
+    <p>Top-k facts (k = 6) are injected each turn. The agent saves new facts via
+    <code>save_memory</code> when it notices something durable. Old turns fold
+    into an LLM summary once history passes the compaction threshold.</p>
+
+    <h2>Procedural memory — MEMORY.md</h2>
+    <p>Standing rules that are <strong>always</strong> loaded, in both modes.
+    Edit under Memories → <em>Rules</em>, or let the agent append via the
+    <code>remember_rule</code> tool (approval-gated). Example:</p>
+    <pre><code>- Always answer in Persian
+- My timezone is +3:30
+- Never suggest cloud services I didn't ask about</code></pre>
+
+    <h2>Episodic memory — sessions</h2>
+    <p>Every conversation is a resumable transcript on device. Browse and reopen
+    them from Settings → Sessions; compaction keeps long ones inside the
+    context window by folding old turns into summaries.</p>
+
+    <div class="pager">
+      <a href="providers.html"><span class="small">Previous</span>← Providers</a>
+      <a href="tools.html" class="next"><span class="small">Next</span>Tools &amp; approvals →</a>
+    </div>
+  </main>
+</div>
+
+<footer><div class="wrap inner">
+  <span>© 2026 mamad720220 · MIT</span>
+  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
+</div></footer>
+</body>
+</html>

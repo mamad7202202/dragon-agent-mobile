@@ -6,6 +6,7 @@ import '../../data/llm.dart' show ProviderCfg;
 import '../../state/app_state.dart';
 import '../widgets/composer.dart';
 import '../widgets/flame_logo.dart';
+import '../widgets/glass.dart';
 import '../widgets/update_banner.dart';
 import 'chat_view.dart';
 import 'memories_screen.dart';
@@ -50,15 +51,10 @@ class _HomeShellState extends State<HomeShell> {
         titleSpacing: 8,
         title: GestureDetector(
           onTap: () => showModelSheet(context),
-          child: Container(
+          child: GlassContainer(
+            radius: 999,
+            blur: 16,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? DragonColors.card
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: DragonColors.stroke),
-            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -101,7 +97,21 @@ class _HomeShellState extends State<HomeShell> {
           children: [
             const SizedBox(height: kToolbarHeight + 14),
             const UpdateBanner(),
-            Expanded(child: ChatView(openMemories: () => _openMemories(context))),
+            Expanded(
+              child: Stack(
+                children: [
+                  ChatView(openMemories: () => _openMemories(context)),
+                  // soft fade from the typing bar upwards — black in dark,
+                  // white in light
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: BottomFade(height: 130),
+                  ),
+                ],
+              ),
+            ),
             const Composer(),
           ],
         ),
