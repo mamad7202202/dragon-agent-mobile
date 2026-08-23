@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dragon_agent_mobile/core/theme.dart';
 import 'package:dragon_agent_mobile/data/models.dart';
+import 'package:dragon_agent_mobile/ui/screens/setup_wizard.dart';
 import 'package:dragon_agent_mobile/ui/widgets/flame_logo.dart';
 import 'package:flutter/material.dart';
 
@@ -35,5 +36,19 @@ void main() {
     );
     // MaterialApp itself contributes CustomPaints; assert at least ours exists.
     expect(find.byType(CustomPaint), findsWidgets);
+  });
+
+  testWidgets('SetupWizard renders with no provider selected (regression: '
+      'null check crash on first build)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildDragonTheme(Brightness.dark),
+        home: const SetupWizard(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Dragon Agent'), findsOneWidget);
+    // step 2 & 3 must render lazily-safe even before a preset is picked
+    expect(find.text('Choose a provider'), findsOneWidget);
   });
 }

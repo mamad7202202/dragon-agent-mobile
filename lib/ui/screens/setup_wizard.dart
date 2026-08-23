@@ -18,7 +18,6 @@ class SetupWizard extends StatefulWidget {
 }
 
 class _SetupWizardState extends State<SetupWizard> {
-  final _page = PageController();
   var _step = 0;
 
   Preset? _preset;
@@ -35,7 +34,6 @@ class _SetupWizardState extends State<SetupWizard> {
 
   @override
   void dispose() {
-    _page.dispose();
     _url.dispose();
     _key.dispose();
     _customModel.dispose();
@@ -139,14 +137,28 @@ class _SetupWizardState extends State<SetupWizard> {
                 ),
               ),
               Expanded(
-                child: PageView(
-                  controller: _page,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _pickProvider(),
-                    _connection(),
-                    _modelStep(),
-                  ],
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, anim) => FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween(
+                        begin: const Offset(0.04, 0),
+                        end: Offset.zero,
+                      ).animate(anim),
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(_step),
+                    child: switch (_step) {
+                      0 => _pickProvider(),
+                      1 => _connection(),
+                      _ => _modelStep(),
+                    },
+                  ),
                 ),
               ),
               // footer nav
@@ -156,12 +168,7 @@ class _SetupWizardState extends State<SetupWizard> {
                   children: [
                     if (_step > 0)
                       TextButton(
-                          onPressed: () {
-                            setState(() => _step--);
-                            _page.previousPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic);
-                          },
+                          onPressed: () => setState(() => _step--),
                           child: const Text('Back')),
                     const Spacer(),
                     FilledButton.icon(
@@ -178,9 +185,6 @@ class _SetupWizardState extends State<SetupWizard> {
                               HapticFeedback.lightImpact();
                               if (_step < 2) {
                                 setState(() => _step++);
-                                _page.nextPage(
-                                    duration: const Duration(milliseconds: 320),
-                                    curve: Curves.easeOutCubic);
                               } else {
                                 _finish();
                               }
@@ -292,7 +296,8 @@ class _SetupWizardState extends State<SetupWizard> {
   // ---------------- step 2 ----------------
 
   Widget _connection() {
-    final p = _preset!;
+    final p = _preset;
+    if (p == null) return const SizedBox.shrink();
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       children: [
@@ -359,7 +364,8 @@ class _SetupWizardState extends State<SetupWizard> {
   // ---------------- step 3 ----------------
 
   Widget _modelStep() {
-    final p = _preset!;
+    final p = _preset;
+    if (p == null) return const SizedBox.shrink();
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       children: [
