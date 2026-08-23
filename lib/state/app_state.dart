@@ -160,11 +160,10 @@ class AppState extends ChangeNotifier {
   Future<void> _startUpdateWatch() async {
     unawaited(checkForUpdates());
     try {
-      _connectivitySub = Connectivity().onConnectivityChanged.listen((res) {
-        final online = res is List
-            ? (res).any((e) => e != ConnectivityResult.none)
-            : res != ConnectivityResult.none;
-        if (online) unawaited(checkForUpdates());
+      _connectivitySub =
+          Connectivity().onConnectivityChanged.listen((results) {
+        if (results.contains(ConnectivityResult.none)) return;
+        unawaited(checkForUpdates());
       });
     } catch (_) {}
   }
