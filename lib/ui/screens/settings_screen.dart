@@ -24,7 +24,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final s = state.settings;
-    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
