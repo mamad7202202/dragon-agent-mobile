@@ -25,7 +25,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   var _memoriesTickSeen = -1;
-  var _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _openMemories(BuildContext context) {
     Navigator.of(context).push(
@@ -51,8 +51,6 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const _AppDrawer(),
-      onDrawerOpened: () =>
-          FocusManager.instance.primaryFocus?.unfocus(),
       body: SafeArea(
         bottom: false,
         child: Column(
