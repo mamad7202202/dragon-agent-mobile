@@ -270,4 +270,6 @@ class CloudflareService {
   }
 
   String _json(Object o) => jsonEncode(o);
+
+  String _clip(String s, int n) => s.length <= n ? s : '${s.substring(0, n)}…';
 }

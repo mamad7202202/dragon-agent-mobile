@@ -894,11 +894,11 @@ class AppState extends ChangeNotifier {
             'app': 'Dragon Agent Mobile v$appVersion',
           });
         default:
-          if (name.startsWith('gh_')) {
-            return await github.handleTool(name, args);
+          if (call.name.startsWith('gh_')) {
+            return await github.handleTool(call.name, args);
           }
-          if (name.startsWith('cf_')) {
-            return await cloudflare.handleTool(name, args);
+          if (call.name.startsWith('cf_')) {
+            return await cloudflare.handleTool(call.name, args);
           }
           return jsonEncode({'error': 'unknown tool ${call.name}'});
       }
