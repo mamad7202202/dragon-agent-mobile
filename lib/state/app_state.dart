@@ -12,6 +12,7 @@ import '../data/llm.dart';
 import '../data/memory.dart';
 import '../data/models.dart';
 import '../data/sessions.dart';
+import '../services/mcp.dart';
 import '../services/update_service.dart';
 
 enum MemoryMode { hybrid, outline }
@@ -205,6 +206,7 @@ class AppState extends ChangeNotifier {
   final MemoryStore memory = MemoryStore();
   final GraphMemoryStore graph = GraphMemoryStore();
   final SessionStore sessions = SessionStore();
+  final McpRegistry mcp = McpRegistry();
 
   late SharedPreferences _prefs;
 
@@ -282,6 +284,12 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
     try {
       await sessions.loadIndex();
+    } catch (_) {}
+    try {
+      mcp.load(_prefs.getString('mcp_servers'));
+      if (mcp.hasEnabled) {
+        unawaited(mcp.refreshAll());
+      }
     } catch (_) {}
 
     final rawProviders = _prefs.getString('providers');
@@ -376,6 +384,7 @@ class AppState extends ChangeNotifier {
     await _prefs.clear();
     memory.clear();
     graph.sections.clear();
+    mcp.clearAll();
     try {
       await memory.saveFacts();
       await graph.save();
@@ -666,7 +675,7 @@ class AppState extends ChangeNotifier {
             if (decision == ApprovalDecision.session) {
               _sessionAllowed.add(call.name);
             }
-            out = _execTool(call);
+            out = await _execTool(call);
           }
           executed.add({'id': call.id, 'name': call.name, 'out': out});
         }
@@ -712,13 +721,19 @@ class AppState extends ChangeNotifier {
 
   List<Map<String, Object>> _activeToolDefs() {
     final defs = List<Map<String, Object>>.from(extraToolDefs);
-    if (!settings.memoryEnabled) return defs;
-    if (settings.mode == MemoryMode.outline) {
-      defs.addAll(outlineToolDefs);
-    } else {
-      defs.addAll(memoryToolDefs);
+    if (settings.memoryEnabled) {
+      if (settings.mode == MemoryMode.outline) {
+        defs.addAll(outlineToolDefs);
+      } else {
+        defs.addAll(memoryToolDefs);
+      }
     }
+    defs.addAll(mcp.toolDefsForLlm());
     return defs;
+  }
+
+  Future<void> saveMcpServers() async {
+    await _prefs.setString('mcp_servers', mcp.persist());
   }
 
   Future<void> _saveMemoryStores() async {
@@ -731,7 +746,7 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  String _execTool(ToolCall call) {
+  Future<String> _execTool(ToolCall call) async {
     try {
       final args = call.argsJson.trim().isEmpty
           ? <String, dynamic>{}
@@ -829,6 +844,12 @@ class AppState extends ChangeNotifier {
             'app': 'Dragon Agent Mobile v$appVersion',
           });
         default:
+          if (mcp.isMcpTool(call.name)) {
+            final out = await mcp.call(call.name, args);
+            return out.isEmpty
+                ? jsonEncode({'ok': true})
+                : _clip(out, 4000);
+          }
           return jsonEncode({'error': 'unknown tool ${call.name}'});
       }
     } catch (e) {
@@ -900,6 +921,13 @@ class AppState extends ChangeNotifier {
     buf.writeln('OTHER TOOLS: datetime (current time), calculator (exact '
         'arithmetic), list_memories (inspect memory), device_info, and '
         'remember_rule (persistent user rules — sensitive).');
+    if (mcp.hasEnabled && mcp.totalTools > 0) {
+      buf.writeln();
+      buf.writeln('SKILLS: the mcp_* tools connect to external services the '
+          'user configured (${mcp.enabledCount} server(s), ${mcp.totalTools} '
+          'tools). Use them for anything they cover — repos, issues, '
+          'deployments, docs.');
+    }
 
     if (session.wire.where((m) => m['r'] == 's').isNotEmpty) {
       buf.writeln();

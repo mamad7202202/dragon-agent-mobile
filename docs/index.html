@@ -25,15 +25,37 @@
 </nav>
 
 <header class="hero wrap">
-  <p class="hero-kicker">session <b>0x1F</b> · resumed · memory: hybrid</p>
+  <p class="hero-kicker">telemetry · <b>live</b> from api.github.com</p>
 
   <div class="term">
     <div class="term-bar">
       <span class="dot live"></span><span class="dot"></span><span class="dot"></span>
-      dragon — android, release build
-      <span class="path">~/dragon/sessions/0x1F.json</span>
+      download telemetry
+      <span class="path">repos/mamad7202202/dragon-agent-mobile/releases</span>
     </div>
-    <div class="term-body" aria-live="polite"></div>
+    <div class="tel-body">
+      <div class="tel-stats">
+        <div class="stat">
+          <span class="stat-n" id="t-total">—</span>
+          <span class="stat-l">total downloads</span>
+        </div>
+        <div class="stat">
+          <span class="stat-n" id="t-releases">—</span>
+          <span class="stat-l">releases</span>
+        </div>
+        <div class="stat">
+          <span class="stat-n" id="t-latest">—</span>
+          <span class="stat-l">latest tag</span>
+        </div>
+      </div>
+      <div class="tel-chart" id="t-chart">
+        <div class="tel-empty">fetching api.github.com …</div>
+      </div>
+      <div class="tel-foot">
+        <span id="t-stamp">connecting…</span>
+        <span>every install of every build, counted by github</span>
+      </div>
+    </div>
   </div>
 
   <p class="hero-sub"><strong>Dragon Agent Mobile</strong> is an AI agent for
@@ -75,10 +97,11 @@
     Destructive calls pause and ask you first. <a href="tools.html">The toolbox →</a></p>
   </div>
   <div class="row">
-    <span class="sys ember">agent · reasoning</span>
-    <h3>Deep thinking</h3>
-    <p>Reasoning effort from off to deep, with the thought process readable
-    inline. Web search where the provider supports it natively.</p>
+    <span class="sys ember">agent · mcp</span>
+    <h3>Skills over MCP</h3>
+    <p>Plug in the GitHub MCP, Cloudflare, or any MCP server — the dragon
+    calls their tools natively: repos, builds, deployments, whatever you wire
+    up.</p>
   </div>
   <div class="row">
     <span class="sys">protocol · providers</span>
@@ -116,6 +139,6 @@
   </div>
 </footer>
 
-<script src="app.js"></script>
+<script src="telemetry.js"></script>
 </body>
 </html>

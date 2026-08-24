@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
@@ -49,6 +50,17 @@ class DragonAgentApp extends StatelessWidget {
             theme: buildDragonTheme(Brightness.light),
             darkTheme: buildDragonTheme(Brightness.dark),
             themeMode: state.ready ? state.settings.theme : ThemeMode.dark,
+            builder: (context, child) {
+              // keep oversized system font scales from breaking layouts
+              final mq = MediaQuery.of(context);
+              final clamped = mq.textScaler.scale(100) > 120
+                  ? TextScaler.linear(1.2)
+                  : mq.textScaler;
+              return MediaQuery(
+                data: mq.copyWith(textScaler: clamped),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: AnimatedSwitcher(
               duration: const Duration(milliseconds: 450),
               switchInCurve: Curves.easeOutCubic,

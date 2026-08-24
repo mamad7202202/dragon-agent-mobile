@@ -68,3 +68,14 @@ window.recallLab = function (root, reduced) {
   input.addEventListener("input", render);
   render();
 };
+
+/* self-boot when the lab is present */
+(function () {
+  var lab = document.getElementById("lab");
+  if (lab && window.recallLab) {
+    window.recallLab(
+      lab,
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+})();

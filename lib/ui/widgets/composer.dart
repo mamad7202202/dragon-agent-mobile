@@ -53,10 +53,10 @@ class _ComposerState extends State<Composer> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
         child: GlassContainer(
-          radius: 28,
-          blur: 22,
+          radius: 26,
+          blur: 24,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
             child: Row(
@@ -67,17 +67,18 @@ class _ComposerState extends State<Composer> {
                     controller: _ctrl,
                     focusNode: _focus,
                     minLines: 1,
-                    maxLines: 5,
+                    maxLines: 6,
                     textInputAction: TextInputAction.newline,
                     style: TextStyle(
                         fontSize: 15,
+                        height: 1.4,
                         color: scheme.onSurface,
                         decoration: TextDecoration.none),
                     decoration: InputDecoration(
-                      hintText: 'Ask Dragon anything…',
+                      hintText: 'Message Dragon…',
                       filled: false,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 13),
+                          horizontal: 16, vertical: 14),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -106,16 +107,6 @@ class _ComposerState extends State<Composer> {
                           color: busy
                               ? scheme.onSurface.withValues(alpha: 0.08)
                               : null,
-                          boxShadow: busy
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: DragonColors.ember
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
                         ),
                         child: IconButton(
                           onPressed: busy ? null : (_hasText ? _send : null),

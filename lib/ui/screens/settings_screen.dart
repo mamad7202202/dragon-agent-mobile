@@ -11,6 +11,7 @@ import '../widgets/update_banner.dart';
 import 'memories_screen.dart';
 import 'sessions_screen.dart';
 import 'setup_wizard.dart';
+import 'skills_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -39,6 +40,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const SetupWizard(editMode: true))),
+          ),
+          const SizedBox(height: 8),
+          _CardTile(
+            leading:
+                const Icon(Icons.extension_rounded, color: DragonColors.gold),
+            title: 'Skills · MCP servers',
+            subtitle: state.mcp.hasEnabled
+                ? '${state.mcp.enabledCount} enabled · ${state.mcp.totalTools} tools for the agent'
+                : 'Connect GitHub, Cloudflare or any MCP server',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SkillsScreen())),
           ),
           const SizedBox(height: 16),
 
