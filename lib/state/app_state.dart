@@ -69,7 +69,7 @@ class _ExprParser {
       final op = eat();
       final right = parseTerm();
       if (right == null) return null;
-      left = (op == '+') ? left + right : left - right;
+      left = (op == '+') ? left! + right : left! - right;
     }
     return left;
   }
@@ -82,13 +82,13 @@ class _ExprParser {
       final right = parsePower();
       if (right == null) return null;
       if (op == '*') {
-        left = left * right;
+        left = left! * right;
       } else if (op == '/') {
         if (right == 0) return null;
-        left = left / right;
+        left = left! / right;
       } else {
         if (right == 0) return null;
-        left = left % right;
+        left = left! % right;
       }
     }
     return left;
