@@ -367,6 +367,7 @@ class McpRegistry extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   void dispose() {
     _http.close();
     super.dispose();

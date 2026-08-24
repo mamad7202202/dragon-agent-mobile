@@ -177,7 +177,11 @@ class _ServerCardState extends State<_ServerCard> {
                             mcp.setEnabled(cfg, v);
                             state.saveMcpServers();
                             if (v) {
-                              mcp.refreshServer(cfg).catchError((_) {});
+                              () async {
+                                try {
+                                  await mcp.refreshServer(cfg);
+                                } catch (_) {}
+                              }();
                             }
                           },
                         ),
@@ -209,8 +213,11 @@ class _ServerCardState extends State<_ServerCard> {
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Reconnect',
-                      onPressed: () =>
-                          mcp.refreshServer(cfg).catchError((_) {}),
+                      onPressed: () async {
+                        try {
+                          await mcp.refreshServer(cfg);
+                        } catch (_) {}
+                      },
                       icon: const Icon(Icons.refresh_rounded,
                           size: 19, color: DragonColors.textDim),
                     ),
