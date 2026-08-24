@@ -28,23 +28,24 @@ class UpdateInfo {
 /// Checks GitHub releases and manages in-app self-update on Android.
 class UpdateService {
   static const _repo = 'mamad7202202/dragon-agent-mobile';
-  static const _apiUrl =
-      'https://api.github.com/repos/$_repo/releases/tags/latest';
+  static const _apiUrl = 'https://api.github.com/repos/$_repo/releases';
 
   final http.Client _http = http.Client();
 
-  /// Current app version, e.g. "1.1.0".
+  /// Current app version, e.g. "1.4.0".
   Future<String> currentVersion() async {
     final info = await PackageInfo.fromPlatform();
     return info.version;
   }
 
-  /// Returns info about a newer release, or null when up-to-date/unavailable.
+  /// Returns info about a newer versioned release, or null when
+  /// up-to-date/unavailable. Ignores the rolling `latest` tag — versions are
+  /// compared semver against vX.Y.Z tags only.
   Future<UpdateInfo?> check(String currentVersion) async {
     try {
       final res = await _http
           .get(
-            Uri.parse(_apiUrl),
+            Uri.parse('$_apiUrl?per_page=30'),
             headers: {
               'Accept': 'application/vnd.github+json',
               'User-Agent': 'dragon-agent-mobile',
@@ -53,16 +54,33 @@ class UpdateService {
           .timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return null;
 
-      final j = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-      final tag = (j['tag_name'] as String? ?? '').replaceFirst('v', '');
-      if (tag.isEmpty || !isNewer(tag, currentVersion)) return null;
+      final releases = (jsonDecode(utf8.decode(res.bodyBytes)) as List)
+          .cast<Map<String, dynamic>>();
 
-      final assets = (j['assets'] as List? ?? []).cast<Map<String, dynamic>>();
+      Map<String, dynamic>? best;
+      List<int>? bestVer;
+      for (final r in releases) {
+        final tag = ((r['tag_name'] as String?) ?? '').trim();
+        final m = RegExp(r'^v?(\d+)\.(\d+)\.(\d+)$').firstMatch(tag);
+        if (m == null) continue; // skip `latest` and non-version tags
+        final assets = (r['assets'] as List?) ?? const [];
+        if (assets.isEmpty) continue;
+        final ver = [1, 2, 3].map((i) => int.parse(m.group(i)!)).toList();
+        if (bestVer == null || _cmp(ver, bestVer) > 0) {
+          best = r;
+          bestVer = ver;
+        }
+      }
+      if (best == null) return null;
+
+      final tag = (best['tag_name'] as String).replaceFirst('v', '');
+      if (!isNewer(tag, currentVersion)) return null;
+
       String? url;
-      for (final a in assets) {
-        final name = (a['name'] as String? ?? '').toLowerCase();
-        if (!name.endsWith('.apk')) continue;
-        if (name.contains('arm64')) {
+      for (final a in (best['assets'] as List).cast<Map<String, dynamic>>()) {
+        final assetName = (a['name'] as String? ?? '').toLowerCase();
+        if (!assetName.endsWith('.apk')) continue;
+        if (assetName.contains('arm64')) {
           url = a['browser_download_url'] as String?;
           break;
         }
@@ -73,13 +91,19 @@ class UpdateService {
       return UpdateInfo(
         version: tag,
         apkUrl: url,
-        releaseUrl: 'https://github.com/$_repo/releases/latest',
-        publishedAt:
-            DateTime.tryParse(j['published_at'] as String? ?? ''),
+        releaseUrl: 'https://github.com/$_repo/releases/tag/${best['tag_name']}',
+        publishedAt: DateTime.tryParse(best['published_at'] as String? ?? ''),
       );
     } catch (_) {
       return null;
     }
+  }
+
+  int _cmp(List<int> a, List<int> b) {
+    for (var i = 0; i < 3; i++) {
+      if (a[i] != b[i]) return a[i].compareTo(b[i]);
+    }
+    return 0;
   }
 
   /// Numeric semver-ish comparison: true when [latest] > [current].

@@ -53,7 +53,8 @@ Mobile** ports the desktop app's *hybrid memory system* to your pocket:
 | **Approval gate** | Sensitive tools (forget/delete/rules) pause for an inline Allow / Always-this-session / Deny card |
 | **Real tool use** | Memory tools, exact calculator, datetime, device info — live activity chips with status & results |
 | **Two memory engines** | Hybrid scored facts **or** the new token-efficient Outline (infographic) memory — switchable in Settings |
-| **MCP skills** | Connect GitHub MCP, Cloudflare or any Streamable-HTTP MCP server — the agent calls their tools natively (repos, issues, builds, docs) |
+| **MCP skills** | Import any SKILL.md from trusted GitHub sources (Anthropic's official skills repo included) — invoke with `/` |
+| **Direct account access** | The agent drives your real GitHub (repos, pushes, PRs, Actions builds) and Cloudflare (KV, D1, Worker deploys) with your tokens |
 | **Light & dark** | Full theme modes with liquid-glass surfaces, floating composer and a soft bottom fade into the typing bar |
 | **Streaming** | Token-by-token responses with SSE for both OpenAI-compatible and Anthropic-native protocols |
 | **Auto-update** | Checks GitHub releases on connect; one tap downloads & installs over the current version — no uninstall needed |

@@ -8,10 +8,11 @@ import '../../services/update_service.dart' show UpdatePhase;
 import '../../state/app_state.dart';
 import '../widgets/flame_logo.dart';
 import '../widgets/update_banner.dart';
+import 'integrations_screen.dart';
 import 'memories_screen.dart';
 import 'sessions_screen.dart';
 import 'setup_wizard.dart';
-import 'skills_screen.dart';
+import 'skills_library_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -45,13 +46,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _CardTile(
             leading:
                 const Icon(Icons.extension_rounded, color: DragonColors.gold),
-            title: 'Skills · MCP servers',
-            subtitle: state.mcp.hasEnabled
-                ? '${state.mcp.enabledCount} enabled · ${state.mcp.totalTools} tools for the agent'
-                : 'Connect GitHub, Cloudflare or any MCP server',
+            title: 'Skills',
+            subtitle:
+                '${state.skills.all.length} installed · find SKILL.md files on GitHub',
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SkillsScreen())),
+                MaterialPageRoute(builder: (_) => const SkillsLibraryScreen())),
+          ),
+          const SizedBox(height: 8),
+          _CardTile(
+            leading: const Icon(Icons.link_rounded, color: DragonColors.gold),
+            title: 'Connect accounts',
+            subtitle:
+                'GitHub · Cloudflare — full access for the agent to build & ship',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const IntegrationsScreen())),
           ),
           const SizedBox(height: 16),
 

@@ -12,7 +12,9 @@ import '../data/llm.dart';
 import '../data/memory.dart';
 import '../data/models.dart';
 import '../data/sessions.dart';
-import '../services/mcp.dart';
+import '../services/cloudflare_api.dart';
+import '../services/github_api.dart';
+import '../services/skills.dart';
 import '../services/update_service.dart';
 
 enum MemoryMode { hybrid, outline }
@@ -206,7 +208,12 @@ class AppState extends ChangeNotifier {
   final MemoryStore memory = MemoryStore();
   final GraphMemoryStore graph = GraphMemoryStore();
   final SessionStore sessions = SessionStore();
-  final McpRegistry mcp = McpRegistry();
+  final GitHubService github = GitHubService();
+  final CloudflareService cloudflare = CloudflareService();
+  final SkillStore skills = SkillStore();
+
+  /// Skill selected via "/" — applies to the next message only.
+  LoadedSkill? activeSkill;
 
   late SharedPreferences _prefs;
 
@@ -245,6 +252,24 @@ class AppState extends ChangeNotifier {
   String? lastUpdateNotice;
   bool updateDismissed = false;
   String appVersion = '…';
+
+  /// Version the user chose "don't show again" for — persisted.
+  String? dismissedUpdateVersion;
+  bool _updateDialogShownThisRun = false;
+
+  bool get shouldShowUpdateDialog =>
+      pendingUpdate != null &&
+      !_updateDialogShownThisRun &&
+      pendingUpdate!.version != dismissedUpdateVersion;
+
+  void markUpdateDialogShown() => _updateDialogShownThisRun = true;
+
+  Future<void> skipUpdateVersion() async {
+    dismissedUpdateVersion = pendingUpdate?.version;
+    await _prefs.setString('update_dismissed', dismissedUpdateVersion ?? '');
+    updateDismissed = true;
+    notifyListeners();
+  }
 
   bool get configured =>
       providers.isNotEmpty &&
@@ -286,11 +311,10 @@ class AppState extends ChangeNotifier {
       await sessions.loadIndex();
     } catch (_) {}
     try {
-      mcp.load(_prefs.getString('mcp_servers'));
-      if (mcp.hasEnabled) {
-        unawaited(mcp.refreshAll());
-      }
+      await skills.load();
     } catch (_) {}
+    github.token = _prefs.getString('gh_token') ?? '';
+    cloudflare.token = _prefs.getString('cf_token') ?? '';
 
     final rawProviders = _prefs.getString('providers');
     if (rawProviders != null) {
@@ -318,6 +342,8 @@ class AppState extends ChangeNotifier {
     try {
       appVersion = await _updates.currentVersion();
     } catch (_) {}
+    dismissedUpdateVersion = _prefs.getString('update_dismissed');
+    if (dismissedUpdateVersion?.isEmpty ?? true) dismissedUpdateVersion = null;
 
     // resume latest session
     if (configured && sessions.metas.isNotEmpty) {
@@ -384,7 +410,10 @@ class AppState extends ChangeNotifier {
     await _prefs.clear();
     memory.clear();
     graph.sections.clear();
-    mcp.clearAll();
+    github.token = '';
+    cloudflare.token = '';
+    skills.clearAll();
+    activeSkill = null;
     try {
       await memory.saveFacts();
       await graph.save();
@@ -460,6 +489,11 @@ class AppState extends ChangeNotifier {
       current = null;
       bubbles = [];
     }
+    notifyListeners();
+  }
+
+  void setActiveSkill(LoadedSkill? skill) {
+    activeSkill = skill;
     notifyListeners();
   }
 
@@ -550,6 +584,19 @@ class AppState extends ChangeNotifier {
     if (text.startsWith('/') && handleCommand(text)) return;
 
     current ??= await sessions.create();
+
+    if (activeSkill != null) {
+      bubbles = [
+        ...bubbles,
+        Bubble(
+          id: 'skill-${DateTime.now().millisecondsSinceEpoch}',
+          kind: BubbleKind.toolUse,
+          toolName: 'skill',
+          toolArgs: activeSkill!.name,
+          toolStatus: ToolStatus.ok,
+        ),
+      ];
+    }
 
     current!.wire.add(Wire.user(text));
     bubbles = [
@@ -715,6 +762,7 @@ class AppState extends ChangeNotifier {
       busy = false;
       liveText = null;
       liveThinking = null;
+      activeSkill = null; // skills apply to one message
       notifyListeners();
     }
   }
@@ -728,12 +776,14 @@ class AppState extends ChangeNotifier {
         defs.addAll(memoryToolDefs);
       }
     }
-    defs.addAll(mcp.toolDefsForLlm());
+    if (github.connected) defs.addAll(GitHubService.toolDefs);
+    if (cloudflare.connected) defs.addAll(CloudflareService.toolDefs);
     return defs;
   }
 
-  Future<void> saveMcpServers() async {
-    await _prefs.setString('mcp_servers', mcp.persist());
+  Future<void> saveTokens() async {
+    await _prefs.setString('gh_token', github.token);
+    await _prefs.setString('cf_token', cloudflare.token);
   }
 
   Future<void> _saveMemoryStores() async {
@@ -844,11 +894,11 @@ class AppState extends ChangeNotifier {
             'app': 'Dragon Agent Mobile v$appVersion',
           });
         default:
-          if (mcp.isMcpTool(call.name)) {
-            final out = await mcp.call(call.name, args);
-            return out.isEmpty
-                ? jsonEncode({'ok': true})
-                : _clip(out, 4000);
+          if (name.startsWith('gh_')) {
+            return await github.handleTool(name, args);
+          }
+          if (name.startsWith('cf_')) {
+            return await cloudflare.handleTool(name, args);
           }
           return jsonEncode({'error': 'unknown tool ${call.name}'});
       }
@@ -921,12 +971,25 @@ class AppState extends ChangeNotifier {
     buf.writeln('OTHER TOOLS: datetime (current time), calculator (exact '
         'arithmetic), list_memories (inspect memory), device_info, and '
         'remember_rule (persistent user rules — sensitive).');
-    if (mcp.hasEnabled && mcp.totalTools > 0) {
+    if (github.connected) {
       buf.writeln();
-      buf.writeln('SKILLS: the mcp_* tools connect to external services the '
-          'user configured (${mcp.enabledCount} server(s), ${mcp.totalTools} '
-          'tools). Use them for anything they cover — repos, issues, '
-          'deployments, docs.');
+      buf.writeln('GITHUB: the gh_* tools operate the user\'s real GitHub '
+          'account with their token — create repos, push code (prefer '
+          'gh_push_files for multi-file writes), open issues/PRs, and dispatch '
+          'Actions workflows for builds. Use them whenever the user wants code '
+          'written, stored or built.');
+    }
+    if (cloudflare.connected) {
+      buf.writeln();
+      buf.writeln('CLOUDFLARE: the cf_* tools manage the user\'s Cloudflare '
+          'account — KV namespaces, D1 databases and Worker deployments. Call '
+          'cf_accounts first to learn the account_id.');
+    }
+    if (activeSkill != null) {
+      buf.writeln();
+      buf.writeln('[ACTIVE SKILL: ${activeSkill!.name}]');
+      buf.writeln(_clip(activeSkill!.body, 6000));
+      buf.writeln('Follow this skill for this reply.');
     }
 
     if (session.wire.where((m) => m['r'] == 's').isNotEmpty) {

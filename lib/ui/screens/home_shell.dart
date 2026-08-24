@@ -3,18 +3,19 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../data/llm.dart' show ProviderCfg;
+import '../../data/sessions.dart';
 import '../../state/app_state.dart';
 import '../widgets/composer.dart';
 import '../widgets/flame_logo.dart';
 import '../widgets/glass.dart';
 import '../widgets/update_banner.dart';
 import 'chat_view.dart';
+import 'integrations_screen.dart';
 import 'memories_screen.dart';
-import 'sessions_screen.dart';
 import 'settings_screen.dart';
-import 'skills_screen.dart';
+import 'skills_library_screen.dart';
 
-/// App shell — floating glass nav bar over the chat surface.
+/// App shell — minimal glass bar (menu · model · new) + sessions drawer.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -24,6 +25,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   var _memoriesTickSeen = -1;
+  var _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _openMemories(BuildContext context) {
     Navigator.of(context).push(
@@ -41,15 +43,24 @@ class _HomeShellState extends State<HomeShell> {
     final state = context.watch<AppState>();
     if (state.memoriesOpenTick != _memoriesTickSeen) {
       _memoriesTickSeen = state.memoriesOpenTick;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openMemories(context));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openMemories(context));
     }
+    _maybeShowUpdateDialog(state);
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const _AppDrawer(),
+      onDrawerOpened: () =>
+          FocusManager.instance.primaryFocus?.unfocus(),
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _NavBar(state: state, openMemories: () => _openMemories(context)),
+            _NavBar(
+              onMenu: () => _scaffoldKey.currentState?.openDrawer(),
+              onNew: state.busy ? null : () => state.newSession(),
+            ),
             UpdateBanner(),
             Expanded(child: ChatView(openMemories: () => _openMemories(context))),
             const Composer(),
@@ -58,93 +69,112 @@ class _HomeShellState extends State<HomeShell> {
       ),
     );
   }
+
+  void _maybeShowUpdateDialog(AppState state) {
+    if (!state.shouldShowUpdateDialog) return;
+    state.markUpdateDialogShown();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Update available'),
+          content: Text(
+              'Version ${state.pendingUpdate!.version} is out — you are on '
+              '${state.appVersion}. Updates install right over this one.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                state.skipUpdateVersion();
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("Don't show again"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: DragonColors.ember),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                showUpdateSheet(context);
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
 }
 
 // ------------------------------------------------------------------
-// floating glass nav bar
+// minimal glass bar: menu · model · new
 // ------------------------------------------------------------------
 
 class _NavBar extends StatelessWidget {
-  final AppState state;
-  final VoidCallback openMemories;
-  const _NavBar({required this.state, required this.openMemories});
+  final VoidCallback? onNew;
+  final VoidCallback onMenu;
+  const _NavBar({required this.onMenu, required this.onNew});
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
     final scheme = Theme.of(context).colorScheme;
-    final busy = state.busy;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: GlassContainer(
         radius: 22,
         blur: 22,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
         child: Row(
           children: [
-            // model chip
-            GestureDetector(
-              onTap: () => showModelSheet(context),
-              child: Container(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 13),
-                decoration: BoxDecoration(
-                  color: scheme.onSurface.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const FlameLogo(size: 19),
-                    const SizedBox(width: 9),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 148),
-                      child: Text(
-                        state.configured ? state.activeModel : 'not set up',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface.withValues(alpha: 0.9),
+            _NavBtn(
+              icon: Icons.menu_rounded,
+              tooltip: 'Menu',
+              onTap: onMenu,
+            ),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => showModelSheet(context),
+                child: Container(
+                  height: 38,
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  decoration: BoxDecoration(
+                    color: scheme.onSurface.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Row(
+                    children: [
+                      const FlameLogo(size: 19),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          state.configured ? state.activeModel : 'not set up',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface.withValues(alpha: 0.9),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    Icon(Icons.expand_more_rounded,
-                        size: 18, color: DragonColors.textDim),
-                  ],
+                      Icon(Icons.expand_more_rounded,
+                          size: 18, color: DragonColors.textDim),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
-            _NavBtn(
-              icon: Icons.extension_rounded,
-              tooltip: 'Skills · MCP',
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SkillsScreen())),
-            ),
-            _NavBtn(
-              icon: Icons.auto_awesome_rounded,
-              tooltip: 'Memories',
-              onTap: openMemories,
-            ),
-            _NavBtn(
-              icon: Icons.forum_outlined,
-              tooltip: 'Sessions',
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SessionsScreen())),
-            ),
             _NavBtn(
               icon: Icons.add_rounded,
-              tooltip: 'New chat',
+              tooltip: 'New session',
               emphasized: true,
-              onTap: busy ? null : () => state.newSession(),
-            ),
-            _NavBtn(
-              icon: Icons.tune_rounded,
-              tooltip: 'Settings',
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              onTap: onNew,
             ),
           ],
         ),
@@ -191,6 +221,194 @@ class _NavBtn extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ------------------------------------------------------------------
+// drawer: quick actions + all sessions
+// ------------------------------------------------------------------
+
+class _AppDrawer extends StatelessWidget {
+  const _AppDrawer();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final metas = state.sessions.metas;
+
+    return Drawer(
+      backgroundColor: dark ? DragonColors.surface : Colors.white,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+              child: Row(
+                children: [
+                  const FlameLogo(size: 30),
+                  const SizedBox(width: 11),
+                  Text('Dragon Agent',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const Spacer(),
+                  Text('v${state.appVersion}',
+                      style: TextStyle(
+                          fontSize: 11, color: DragonColors.textDim)),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  _DrawerAction(
+                    icon: Icons.extension_rounded,
+                    label: 'Skills',
+                    onTap: () => _push(context, const SkillsLibraryScreen()),
+                  ),
+                  _DrawerAction(
+                    icon: Icons.link_rounded,
+                    label: 'Connect',
+                    onTap: () => _push(context, const IntegrationsScreen()),
+                  ),
+                  _DrawerAction(
+                    icon: Icons.auto_awesome_rounded,
+                    label: 'Memory',
+                    onTap: () {
+                      Navigator.pop(context);
+                      state.openMemories();
+                    },
+                  ),
+                  _DrawerAction(
+                    icon: Icons.tune_rounded,
+                    label: 'Settings',
+                    onTap: () => _push(context, const SettingsScreen()),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Divider(color: dark ? DragonColors.stroke : const Color(0x11000000)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+              child: Text('SESSIONS',
+                  style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
+                      color: DragonColors.textDim)),
+            ),
+            Expanded(
+              child: metas.isEmpty
+                  ? Center(
+                      child: Text('No sessions yet — start one with +',
+                          style: Theme.of(context).textTheme.bodySmall),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemCount: metas.length,
+                      itemBuilder: (context, i) =>
+                          _SessionRow(meta: metas[i]),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _push(BuildContext context, Widget screen) {
+    Navigator.pop(context);
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen));
+  }
+}
+
+class _DrawerAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _DrawerAction(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            children: [
+              Icon(icon, size: 20, color: DragonColors.gold),
+              const SizedBox(height: 5),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionRow extends StatelessWidget {
+  final SessionMeta meta;
+  const _SessionRow({required this.meta});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<AppState>();
+    final active = state.current?.id == meta.id;
+    return Dismissible(
+      key: ValueKey('drawer-${meta.id}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => state.deleteSession(meta.id),
+      background: Container(
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsets.only(right: 22),
+        color: DragonColors.emberDeep.withValues(alpha: 0.12),
+        child: const Icon(Icons.delete_outline_rounded,
+            color: DragonColors.emberDeep),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+        dense: true,
+        leading: Icon(
+          Icons.chat_bubble_outline_rounded,
+          size: 16,
+          color: active ? DragonColors.ember : DragonColors.textDim,
+        ),
+        title: Text(
+          meta.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            color: active ? DragonColors.ember : null,
+          ),
+        ),
+        subtitle: Text(_fmt(meta.updatedAt),
+            style: TextStyle(fontSize: 11, color: DragonColors.textDim)),
+        onTap: () async {
+          Navigator.pop(context);
+          await state.openSession(meta.id);
+        },
+      ),
+    );
+  }
+
+  String _fmt(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return 'now';
+    if (d.inHours < 1) return '${d.inMinutes}m ago';
+    if (d.inDays < 1) return '${d.inHours}h ago';
+    if (d.inDays < 7) return '${d.inDays}d ago';
+    return '${t.month}/${t.day}';
   }
 }
 
