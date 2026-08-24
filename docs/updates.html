@@ -4,83 +4,93 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Updating — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html">Docs</a>
-    <a href="memory.html">Memory</a>
-    <a href="tools.html">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html">Getting started</a>
-    <a href="providers.html">Providers &amp; models</a>
-    <a href="memory.html">Memory system</a>
-    <a href="tools.html">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html" class="active">Updating</a>
-    <a href="faq.html">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a class="active" href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
-    <h1>Updating</h1>
-    <p>The app updates itself — no Play Store, no reinstalls.</p>
+  <article>
+    <p class="crumb">docs / <b>updating</b></p>
+    <h1>Updates that stack</h1>
+    <p class="standfirst">The app updates itself from GitHub releases. You
+    never uninstall to upgrade, and your keys, memories and sessions survive
+    every update.</p>
 
-    <h2>How it works</h2>
+    <h2><span class="mark">flow</span>What happens</h2>
     <ol>
-      <li>Whenever your device comes online (and once at launch) the app checks
-          the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/tag/latest">rolling
-          <code>latest</code> release</a> on GitHub.</li>
-      <li>If a newer <code>X.Y.Z</code> exists, a banner slides in over the
-          chat. Manual checks also live in Settings → <em>Check for updates</em>.</li>
-      <li>Tap <strong>به‌روزرسانی / Update</strong> → the APK downloads with a
-          live progress bar → tap <strong>Install</strong>.</li>
-      <li>The system installer opens; the new version installs
-          <strong>on top of</strong> the current one. Your keys, memories,
-          outline, rules and sessions all survive.</li>
+      <li>When your device comes online — and once at launch — the app checks
+      the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/tag/latest">rolling
+      <code>latest</code> release</a>.</li>
+      <li>A newer version gets a banner over the chat. You can also check
+      manually in Settings → Check for updates.</li>
+      <li>Tapping it downloads the APK with a live progress bar, then opens the
+      system installer.</li>
+      <li>The new version installs over the old one. Done.</li>
     </ol>
 
-    <h2>Why updates stack cleanly</h2>
-    <p>Every release is signed with the same committed keystore and ships the
-    same <code>applicationId</code> with a monotonically increasing version
-    code — Android treats each build as a normal in-place upgrade.</p>
-    <div class="note"><b>One-time note:</b> if you installed a very early build
-    (v1.0.x) signed before the stable key existed, uninstall it once and install
-    v1.1.0+ fresh. Every build after that updates over the previous forever.</div>
+    <h2><span class="mark">trust</span>Why installs stack cleanly</h2>
+    <p>Android only allows an in-place upgrade when the signature and package
+    id match and the version number increases. Dragon signs every release with
+    the same committed keystore, keeps one <code>applicationId</code>, and
+    bumps the build number each release — so each build is a normal upgrade of
+    the last.</p>
+    <div class="note warn"><b>One-time exception:</b> builds before v1.1.0 were
+    signed with a per-build debug key. Uninstall that old build once, install
+    v1.1.0 or newer, and every update after that stacks forever.</div>
 
-    <h2>Versioning scheme</h2>
+    <h2><span class="mark">semver</span>Version scheme</h2>
     <ul>
-      <li><code>X.Y.Z</code> — semantic version, source of truth in
-          <code>pubspec.yaml</code>.</li>
-      <li><code>+N</code> — Android build number, bumped every release so the
-          installer always accepts the newer package.</li>
-      <li>Every push to <code>main</code> is tagged <code>vX.Y.Z</code> and
-          published both as a formal release and as the rolling
-          <code>latest</code>.</li>
+      <li><code>X.Y.Z</code> — semantic version, defined in
+      <code>pubspec.yaml</code>.</li>
+      <li><code>+N</code> — the Android build number; increases every release
+      so the installer always accepts the newer package.</li>
+      <li>Every push to <code>main</code> is tagged <code>vX.Y.Z</code>,
+      published as a formal release <em>and</em> as the rolling
+      <code>latest</code>.</li>
     </ul>
 
-    <h2>iOS</h2>
-    <p>Apple doesn't allow in-app self-installation of IPAs, so on iOS the
-    update banner opens the releases page — re-sideload with Sideloadly/AltStore
-    as usual.</p>
+    <h2><span class="mark">ios</span>On iOS</h2>
+    <p>Apple doesn't allow in-app self-installation. The banner opens the
+    releases page instead — re-sideload with Sideloadly or AltStore as usual.</p>
 
     <div class="pager">
-      <a href="commands.html"><span class="small">Previous</span>← Commands</a>
-      <a href="faq.html" class="next"><span class="small">Next</span>FAQ →</a>
+      <a class="prev" href="commands.html">commands</a>
+      <a class="next" href="faq.html">faq</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
 </body>
 </html>

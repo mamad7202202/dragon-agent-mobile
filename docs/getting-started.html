@@ -4,88 +4,101 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Getting started — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html" class="active">Docs</a>
-    <a href="memory.html">Memory</a>
-    <a href="tools.html">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html" class="active">Getting started</a>
-    <a href="providers.html">Providers &amp; models</a>
-    <a href="memory.html">Memory system</a>
-    <a href="tools.html">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html">Updating</a>
-    <a href="faq.html">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a class="active" href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
-    <h1>Getting started</h1>
-    <p>From download to your first conversation in about a minute.</p>
+  <article>
+    <p class="crumb">docs / <b>getting started</b></p>
+    <h1>From APK to first conversation</h1>
+    <p class="standfirst">Four steps, about a minute. You need the APK and one
+    API key from any provider.</p>
 
-    <h2>1 · Install</h2>
-    <p>Grab the newest build straight from CI — nothing is compiled on your machine:</p>
+    <h2><span class="mark">01</span>Install the build</h2>
+    <p>Download from the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">latest
+    release</a> and sideload it:</p>
     <ul>
-      <li><strong>Android</strong> → open the <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">latest release</a>
-          and download <code>Dragon-Agent-android-arm64.apk</code> (or <code>-universal</code> for older/rare devices), then sideload it.</li>
-      <li><strong>iOS</strong> → download <code>Dragon-Agent-iOS-unsigned.ipa</code> and install it with
-          <a href="https://sideloadly.io">Sideloadly</a> or AltStore, or sign it yourself in Xcode.</li>
+      <li><strong>Android</strong> — <code>Dragon-Agent-android-arm64.apk</code> fits
+      most phones. The <code>-universal</code> build covers every other ABI.</li>
+      <li><strong>iOS</strong> — <code>Dragon-Agent-iOS-unsigned.ipa</code>, installed
+      with <a href="https://sideloadly.io">Sideloadly</a> or AltStore, or signed
+      yourself in Xcode.</li>
+    </ul>
+    <p>Every push to <code>main</code> produces fresh builds in CI. You never
+    compile anything locally.</p>
+
+    <h2><span class="mark">02</span>Pick a provider</h2>
+    <p>First launch opens a three-step wizard. Choose where the intelligence
+    comes from — the full list lives on the <a href="providers.html">providers
+    page</a>. Good first picks:</p>
+    <ul>
+      <li><strong>Google AI Studio</strong> — free keys, Gemini models.</li>
+      <li><strong>OpenRouter</strong> — one key, 400+ models.</li>
+      <li><strong>Ollama / LM Studio</strong> — your own machine, no cloud.</li>
     </ul>
 
-    <h2>2 · Pick a provider</h2>
-    <p>On first launch the setup wizard walks you through three steps. Step one
-    is choosing where your intelligence comes from:</p>
+    <h2><span class="mark">03</span>Paste the key</h2>
+    <p>The base URL fills itself in. Your key is stored in the app's private
+    storage and sent only to that provider — Dragon has no server of its own.</p>
+    <div class="note warn"><b>Local models on a phone:</b> <code>localhost</code>
+    is the phone itself. Use your computer's LAN address instead, like
+    <code>http://192.168.1.10:11434/v1</code> for Ollama, and make sure the
+    server listens on all interfaces.</div>
+
+    <h2><span class="mark">04</span>Choose a model and talk</h2>
+    <p>Suggested models appear as chips; type any model id you prefer. After
+    the wizard you land in the chat. Try:</p>
+    <pre>"Remember that my sister's name is Sara"</pre>
+    <p>You'll see the dragon call <code>save_memory</code> on its own. Ask
+    again tomorrow — on a new phone, even — and it recalls the fact. That's the
+    whole point.</p>
+
+    <h2>Make it yours</h2>
     <ul>
-      <li><strong>Google AI Studio</strong> — generous free tier, great default.</li>
-      <li><strong>OpenRouter</strong> — 400+ models behind one key.</li>
-      <li><strong>OpenAI · Anthropic · Groq · DeepSeek</strong> — first-party APIs.</li>
-      <li><strong>Ollama / LM Studio</strong> — local models, fully offline (see below).</li>
-      <li><strong>Custom</strong> — any OpenAI-compatible endpoint.</li>
-    </ul>
-    <p>Full details and key links live on the <a href="providers.html">Providers page</a>.</p>
-
-    <h2>3 · Connect</h2>
-    <p>The base URL is pre-filled for every preset — you only paste your API key.
-    Keys are stored exclusively on your device and sent directly to the provider;
-    Dragon has no backend and no telemetry.</p>
-    <div class="note"><b>Local models:</b> your phone can't reach <code>localhost</code>
-    of your PC. Replace it with your computer's LAN IP, e.g.
-    <code>http://192.168.1.10:11434/v1</code> for Ollama. The app is allowed to use
-    cleartext HTTP for exactly this reason.</div>
-
-    <h2>4 · Pick a model &amp; start</h2>
-    <p>Suggested models appear as chips per provider, or type any model id.
-    After the wizard you land in the chat — try one of the starter prompts, or
-    say <em>“Remember that my sister's name is Sara”</em> and watch the memory
-    tools fire.</p>
-
-    <h2>5 · Make it yours</h2>
-    <ul>
-      <li><strong>Settings → Appearance</strong> — light / dark / system theme.</li>
-      <li><strong>Settings → Intelligence</strong> — deep-thinking level, web search, temperature.</li>
-      <li><strong>Settings → Memory</strong> — choose the Hybrid or Outline engine.</li>
-      <li>Tap the model chip in the top bar to switch models mid-session.</li>
+      <li><strong>Appearance</strong> — light, dark or system theme.</li>
+      <li><strong>Intelligence</strong> — deep thinking, web search, temperature.</li>
+      <li><strong>Memory</strong> — hybrid or outline engine, switchable anytime.</li>
+      <li>Tap the model chip in the top bar to change models mid-session.</li>
     </ul>
 
     <div class="pager">
-      <a href="providers.html" class="next"><span class="small">Next</span>Providers &amp; models →</a>
+      <a class="next" href="providers.html">providers &amp; models</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
 </body>
 </html>

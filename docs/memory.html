@@ -4,120 +4,119 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Memory system — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html">Docs</a>
-    <a href="memory.html" class="active">Memory</a>
-    <a href="tools.html">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html">Getting started</a>
-    <a href="providers.html">Providers &amp; models</a>
-    <a href="memory.html" class="active">Memory system</a>
-    <a href="tools.html">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html">Updating</a>
-    <a href="faq.html">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a class="active" href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
-    <h1>The memory system</h1>
-    <p>Dragon offers two swappable memory engines. Both are on-device, work
-    offline, and are always available to the model during every turn.</p>
+  <article>
+    <p class="crumb">docs / <b>memory</b></p>
+    <h1>Two engines, one memory</h1>
+    <p class="standfirst">Both engines run on-device, work offline, and are
+    injected into every turn. Switch between them in Settings — both stores
+    stay on disk, so switching is never destructive.</p>
 
-    <div class="grid cols-2">
-      <div class="card">
-        <div class="icon">🧠</div>
-        <h3>Hybrid (classic)</h3>
-        <p>Semantic facts scored per-turn with lexical cosine similarity ×
-        importance × a two-week recency decay, plus MEMORY.md rules and
-        resumable sessions. Rich, fuzzy, battle-tested.</p>
+    <h2><span class="mark sage">engine</span>Try the recall formula</h2>
+    <p>This is the actual scoring Dragon runs before every turn in hybrid
+    mode. Type a query — the six facts below are what "the dragon" knows:</p>
+
+    <div class="lab" id="lab">
+      <div class="lab-head">recall lab <span>k = 3 · decay 14d · cosine over tokens</span></div>
+      <div class="lab-input">
+        <label>query ›</label>
+        <input value="what do you know about my family?" spellcheck="false" aria-label="Recall query">
       </div>
-      <div class="card">
-        <div class="icon">🗺️</div>
-        <h3>Outline (infographic)</h3>
-        <p>Memory as hierarchical sections of one-line bullets — profile,
-        preferences, projects, people, goals, facts. Injected as a compact
-        outline so the model spends a few hundred tokens, not thousands.</p>
-      </div>
+      <div class="lab-rows"></div>
+      <div class="lab-formula"><b>score</b> = cosine(q, fact) × (0.55 + 0.45·importance) × (0.7 + 0.3·recency) &nbsp;&nbsp;recency = 1 / (1 + age_days / 14)</div>
     </div>
 
-    <h2>Choosing an engine</h2>
-    <p>Settings → Memory → <strong>Memory engine</strong>. Switching is instant
-    and non-destructive: both stores live side by side on disk
-    (<code>facts.json</code> and <code>graph_memory.json</code>), so you can flip
-    back and forth. MEMORY.md rules and sessions are shared by both engines.</p>
+    <p>Sage rows are the top-3 injected into the prompt. Change the query to
+    <em>“what tea does he drink”</em> or <em>“what is he building”</em> and
+    watch the ranking move. Importance and age matter as much as word overlap —
+    that's why “tea, no sugar” beats newer-but-irrelevant facts.</p>
 
-    <h2>How Outline mode works</h2>
-    <p>The model maintains the outline itself through tools, and the whole
-    structure is re-injected every turn:</p>
-    <pre><code>[MEMORY OUTLINE]
-profile: Name is Mamad; Lives in Tehran; Works on AI agents;
-preferences: Answers in Persian; Prefers dark UI;
-projects: Dragon Agent — Rust desktop agent; Mobile port in Flutter;
-people: Sister called Sara;
-goals: Ship Play Store release this year;</code></pre>
+    <h2><span class="mark sage">engine</span>Hybrid — scored facts</h2>
+    <p>The classic engine. Facts live in <code>facts.json</code>; each turn the
+    top-k are recalled by the formula above and injected. The dragon saves new
+    facts itself via <code>save_memory</code> when it notices something
+    durable, and deduplicates near-identical ones on write.</p>
+
+    <h2><span class="mark sage">engine</span>Outline — the infographic</h2>
+    <p>The same knowledge, restructured for cheap recall: named sections of
+    self-contained one-line bullets. The whole outline is injected every turn —
+    a few hundred tokens regardless of how much the dragon knows:</p>
+    <pre><span class="c">[MEMORY OUTLINE]</span>
+profile:      Name is Mamad; Lives in Tehran;
+preferences:  Answers in Persian; Dark UI everywhere;
+projects:     Dragon Agent — Rust desktop agent; Mobile port in Flutter;
+people:       Sister called Sara;
+goals:        Ship the Play Store release this year;</pre>
     <ul>
-      <li><strong>memory_write(section, bullets)</strong> — upserts one-liners
-          (≤140 chars). Identical or near-identical bullets are refreshed, never
-          duplicated.</li>
-      <li><strong>memory_delete(id | section)</strong> — removes stale entries
-          (gated behind user approval).</li>
-      <li><strong>memory_read()</strong> — dumps the full outline for auditing.</li>
+      <li><code>memory_write(section, bullets)</code> — upserts one-liners
+      (≤140 chars). Identical or near-identical bullets refresh, never pile up.</li>
+      <li><code>memory_delete(id | section)</code> — clears stale entries,
+      behind your approval.</li>
+      <li>When an outline grows too large, sections are ranked against your
+      message and the least relevant ones drop first — never mid-thought.</li>
     </ul>
+    <p>Anything too rich for a bullet still belongs in MEMORY.md rules or the
+    session transcript. Outline mode doesn't replace those.</p>
 
-    <h3>Why it's token-efficient without being lossy</h3>
-    <ul>
-      <li>Every bullet is <strong>self-contained</strong> — no dangling context
-          across entries.</li>
-      <li>Sections are ranked against your message when the outline grows, so
-          truncation (if any) drops the least relevant sections first, never
-          mid-thought.</li>
-      <li>Dedupe + 160-char cap keep the outline dense instead of sprawling.</li>
-      <li>Anything too rich for a bullet still belongs in MEMORY.md rules or the
-          session transcript — outline mode doesn't replace those.</li>
-    </ul>
-
-    <h2>How Hybrid mode works</h2>
-    <pre><code>score = tf_cosine(query, fact)
-      × (0.55 + 0.45 × importance)
-      × (0.7  + 0.3  × recency)      recency = 1 / (1 + age_days / 14)</code></pre>
-    <p>Top-k facts (k = 6) are injected each turn. The agent saves new facts via
-    <code>save_memory</code> when it notices something durable. Old turns fold
-    into an LLM summary once history passes the compaction threshold.</p>
-
-    <h2>Procedural memory — MEMORY.md</h2>
-    <p>Standing rules that are <strong>always</strong> loaded, in both modes.
-    Edit under Memories → <em>Rules</em>, or let the agent append via the
-    <code>remember_rule</code> tool (approval-gated). Example:</p>
-    <pre><code>- Always answer in Persian
+    <h2><span class="mark sage">rules</span>Procedural — MEMORY.md</h2>
+    <p>Standing instructions loaded in <em>both</em> engines, every turn. Edit
+    them under Memories → Rules, or let the dragon append via
+    <code>remember_rule</code> (it asks first):</p>
+    <pre>- Always answer in Persian
 - My timezone is +3:30
-- Never suggest cloud services I didn't ask about</code></pre>
+- Never suggest cloud services I didn't ask about</pre>
 
-    <h2>Episodic memory — sessions</h2>
-    <p>Every conversation is a resumable transcript on device. Browse and reopen
-    them from Settings → Sessions; compaction keeps long ones inside the
-    context window by folding old turns into summaries.</p>
+    <h2><span class="mark sage">episodic</span>Sessions</h2>
+    <p>Every conversation is a resumable transcript on device. Reopen any of
+    them from Settings → Sessions. Long ones fold their oldest turns into a
+    dense summary once they pass the compaction threshold, so the context
+    window never overflows.</p>
 
     <div class="pager">
-      <a href="providers.html"><span class="small">Previous</span>← Providers</a>
-      <a href="tools.html" class="next"><span class="small">Next</span>Tools &amp; approvals →</a>
+      <a class="prev" href="providers.html">providers</a>
+      <a class="next" href="tools.html">tools &amp; approvals</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
+
+<script src="recall.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

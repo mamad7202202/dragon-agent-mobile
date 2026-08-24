@@ -3,111 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dragon Agent Mobile — an AI that actually remembers you</title>
-<meta name="description" content="Beautiful cross-platform AI agent for Android & iOS with a hybrid memory system. Bring your own key. Own your data.">
+<title>Dragon Agent Mobile — an agent that keeps its memory in files you can read</title>
+<meta name="description" content="AI agent for Android & iOS with hybrid and outline memory. Bring your own key. Everything stays on your device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
 </head>
 <body>
 
-<nav>
-  <div class="inner">
-    <a class="brand" href="index.html">
-      <svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFC53D"/><stop offset=".5" stop-color="#FF6A3D"/><stop offset="1" stop-color="#E5484D"/></linearGradient></defs><path d="M12 1.5c4.3 3.6 5.2 6.9 3.4 10.4-.8 1.7-2 3-2.9 4-.9-1-2.1-2.3-2.9-4C7.8 8.4 8.7 5.1 12 1.5Z" fill="url(#g)"/><path d="M12 11c1.7 1.9 2.1 3.6.9 5.9-.3.6-.6 1-.9 1.3-.3-.3-.6-.7-.9-1.3-1.2-2.3-.8-4 .9-5.9Z" fill="#fff" opacity=".92"/></svg>
-      Dragon Agent
-    </a>
-    <div class="links">
-      <a href="getting-started.html">Docs</a>
-      <a href="memory.html">Memory</a>
-      <a href="tools.html">Tools</a>
-      <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
     </div>
   </div>
 </nav>
 
-<header class="hero">
-  <div class="wrap">
-    <svg class="flame" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFC53D"/><stop offset=".5" stop-color="#FF6A3D"/><stop offset="1" stop-color="#E5484D"/></linearGradient></defs><path d="M12 1.5c4.3 3.6 5.2 6.9 3.4 10.4-.8 1.7-2 3-2.9 4-.9-1-2.1-2.3-2.9-4C7.8 8.4 8.7 5.1 12 1.5Z" fill="url(#g2)"/><path d="M12 11c1.7 1.9 2.1 3.6.9 5.9-.3.6-.6 1-.9 1.3-.3-.3-.6-.7-.9-1.3-1.2-2.3-.8-4 .9-5.9Z" fill="#fff" opacity=".92"/></svg>
-    <h1>The dragon,<br><span class="grad">in your pocket.</span></h1>
-    <p class="sub">A beautiful, open-source AI agent for Android &amp; iOS with a
-    memory that actually lasts. Bring your own key. Own your data.
-    Built entirely with GitHub Actions.</p>
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">⬇ Download for Android</a>
-      <a class="btn ghost" href="getting-started.html">Read the docs →</a>
+<header class="hero wrap">
+  <p class="hero-kicker">session <b>0x1F</b> · resumed · memory: hybrid</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot live"></span><span class="dot"></span><span class="dot"></span>
+      dragon — android, release build
+      <span class="path">~/dragon/sessions/0x1F.json</span>
     </div>
+    <div class="term-body" aria-live="polite"></div>
+  </div>
+
+  <p class="hero-sub"><strong>Dragon Agent Mobile</strong> is an AI agent for
+  Android &amp; iOS that keeps its memory in files you can read, on a device
+  you own. Pick any provider, paste your own key, and the dragon remembers
+  what matters — across sessions, offline, without a server in between.</p>
+
+  <div class="hero-actions">
+    <a class="btn primary" href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">Download the APK</a>
+    <a class="btn" href="getting-started.html">Start the setup guide</a>
+    <a class="btn" href="memory.html">How the memory works</a>
   </div>
 </header>
 
-<section class="block">
-  <div class="wrap">
-    <h2>Why Dragon Agent</h2>
-    <p class="lead">Most chat apps forget you the moment you close them. Dragon
-    ports the desktop <a href="https://github.com/mamad7202202/dragon-agent">dragon-agent</a>
-    memory architecture to your pocket — and wraps it in a liquid-glass UI.</p>
+<section class="ledger wrap">
+  <div class="ledger-head">
+    <h2>What's inside</h2>
+    <span class="n">six subsystems, one binary</span>
+  </div>
+  <p class="ledger-intro">Everything below ships in the app today. No account,
+  no backend, no telemetry — the agent and your memory live on the phone.</p>
 
-    <div class="grid cols-3">
-      <div class="card">
-        <div class="icon">🧠</div>
-        <h3>Hybrid memory</h3>
-        <p>Scored facts, procedural MEMORY.md rules, resumable sessions and
-        automatic compaction — no vector database, works fully offline.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🗺️</div>
-        <h3>Outline memory</h3>
-        <p>A second engine: hierarchical sections &amp; one-line bullets the
-        model recalls in a few hundred tokens. Ultra-efficient, still complete.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔑</div>
-        <h3>Bring your own key</h3>
-        <p>Google, OpenRouter, OpenAI, Anthropic, Groq, DeepSeek, Ollama /
-        LM Studio over LAN, or any OpenAI-compatible endpoint.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🛠️</div>
-        <h3>Real tools</h3>
-        <p>The agent saves &amp; organises memory on its own, does exact math,
-        reads the clock &amp; device — with live activity chips and approval
-        gates for sensitive actions.</p>
-      </div>
-      <div class="card">
-        <div class="icon">💭</div>
-        <h3>Deep thinking</h3>
-        <p>Reasoning-effort control (Off → Deep) with a collapsible thought
-        process, live web search, and token usage per message.</p>
-      </div>
-      <div class="card">
-        <div class="icon">⚡</div>
-        <h3>Self-updating</h3>
-        <p>Checks GitHub releases on connect and installs updates over the
-        current version — one tap, no reinstalls.</p>
-      </div>
-    </div>
+  <div class="row">
+    <span class="sys sage">engine · memory</span>
+    <h3>Hybrid recall</h3>
+    <p>Discrete facts scored every turn — lexical cosine × importance × a
+    two-week decay — plus a MEMORY.md of standing rules. <a href="memory.html">See the formula run live →</a></p>
+  </div>
+  <div class="row">
+    <span class="sys sage">engine · memory</span>
+    <h3>Outline memory</h3>
+    <p>The same knowledge as named sections of one-line bullets. Recalled in a
+    few hundred tokens instead of thousands, without losing the plot.</p>
+  </div>
+  <div class="row">
+    <span class="sys ember">agent · tools</span>
+    <h3>Tool use with a gate</h3>
+    <p>The dragon saves memories, does exact math, reads the clock and device.
+    Destructive calls pause and ask you first. <a href="tools.html">The toolbox →</a></p>
+  </div>
+  <div class="row">
+    <span class="sys ember">agent · reasoning</span>
+    <h3>Deep thinking</h3>
+    <p>Reasoning effort from off to deep, with the thought process readable
+    inline. Web search where the provider supports it natively.</p>
+  </div>
+  <div class="row">
+    <span class="sys">protocol · providers</span>
+    <h3>Any endpoint, two protocols</h3>
+    <p>OpenAI-compatible and Anthropic-native. Google, OpenRouter, Groq,
+    DeepSeek, Ollama on your LAN — bring the key you already have. <a href="providers.html">Providers →</a></p>
+  </div>
+  <div class="row">
+    <span class="sys">update · self</span>
+    <h3>Updates that stack</h3>
+    <p>Checks GitHub releases when you come online and installs over the
+    current build. Never uninstall to upgrade. <a href="updates.html">How →</a></p>
   </div>
 </section>
 
-<section class="block" style="padding-top: 0;">
-  <div class="wrap">
-    <div class="card" style="display:flex; gap:22px; align-items:center; flex-wrap:wrap;">
-      <div style="flex:1; min-width:260px;">
-        <h3 style="font-size:20px;">Ready in under a minute</h3>
-        <p style="margin-top:6px;">Install the APK, pick a provider, paste a key,
-        choose a model. That's it — the dragon handles the rest.</p>
-      </div>
-      <a class="btn primary" href="getting-started.html">Get started</a>
-      <a class="btn ghost" href="https://github.com/mamad7202202/dragon-agent-mobile">Star on GitHub ⭐</a>
+<section class="band wrap">
+  <div class="band-inner">
+    <div>
+      <h2>Install</h2>
+      <p>Sideload the APK, run the three-step wizard, start talking. The iOS
+      build is unsigned — install it with Sideloadly or AltStore.</p>
+    </div>
+    <div class="files">
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">Dragon-Agent-android-arm64.apk <span class="meta">most phones</span></a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">Dragon-Agent-android-universal.apk <span class="meta">every ABI</span></a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile/releases/latest">Dragon-Agent-iOS-unsigned.ipa <span class="meta">sideload</span></a>
     </div>
   </div>
 </section>
 
 <footer>
-  <div class="wrap inner">
-    <span>© 2026 mamad720220 · MIT License</span>
-    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a> · <a href="https://github.com/mamad7202202/dragon-agent">Desktop version</a> · <a href="https://t.me/mamad720220">Telegram</a></span>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://github.com/mamad7202202/dragon-agent">desktop sibling</a> · <a href="https://t.me/mamad720220">@mamad720220</a></span>
   </div>
 </footer>
 
+<script src="app.js"></script>
 </body>
 </html>

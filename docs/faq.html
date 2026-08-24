@@ -4,87 +4,96 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FAQ — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html">Docs</a>
-    <a href="memory.html">Memory</a>
-    <a href="tools.html">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html">Getting started</a>
-    <a href="providers.html">Providers &amp; models</a>
-    <a href="memory.html">Memory system</a>
-    <a href="tools.html">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html">Updating</a>
-    <a href="faq.html" class="active">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a class="active" href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
-    <h1>FAQ</h1>
+  <article>
+    <p class="crumb">docs / <b>faq</b></p>
+    <h1>Questions, answered</h1>
 
-    <h3>Where does my API key go?</h3>
-    <p>Into your device's private storage only. Requests go directly from your
-    phone to the provider you chose. The app has no backend, no analytics, no
+    <h2><span class="mark">keys</span>Where does my API key go?</h2>
+    <p>Into the app's private storage on your phone. Requests go straight to
+    the provider you picked. Dragon has no backend, no analytics, no
     telemetry.</p>
 
-    <h3>Does memory cost extra tokens?</h3>
-    <p>Yes — a small amount per message, by design. Hybrid mode injects up to 6
-    scored facts; Outline mode injects a compact outline (typically a few
-    hundred tokens) regardless of how much you know. That's exactly why Outline
-    mode exists: maximum recall per token.</p>
+    <h2><span class="mark">tokens</span>Does memory cost extra tokens?</h2>
+    <p>Yes — a little, on purpose. Hybrid mode injects up to six scored facts.
+    Outline mode injects a compact outline of a few hundred tokens no matter
+    how much it knows. That trade is exactly why outline mode exists: maximum
+    recall per token.</p>
 
-    <h3>Can the agent access my files, contacts or microphone?</h3>
-    <p>No. The mobile toolbox deliberately excludes filesystem and shell access.
-    Tools cover memory, time, math and device basics — and destructive memory
-    actions require your explicit approval.</p>
+    <h2><span class="mark">privacy</span>Can it read my files or mic?</h2>
+    <p>No. The mobile toolbox is memory, time, math and device basics.
+    Destructive memory actions pause and ask you first — and you can deny
+    mid-flight.</p>
 
-    <h3>Which models support deep thinking?</h3>
+    <h2><span class="mark">think</span>Which models support deep thinking?</h2>
     <p>Anthropic Claude (native thinking budgets), OpenAI reasoning models, and
-    Gemini 2.5+ via the OpenAI-compat layer. OpenRouter routes
-    <code>reasoning_effort</code> to whatever the underlying model supports.
-    Models without reasoning ignore the setting safely.</p>
+    Gemini 2.5+ through the OpenAI-compatible layer. OpenRouter routes the
+    effort setting to whatever the underlying model supports. Models without
+    reasoning ignore it safely.</p>
 
-    <h3>Web search doesn't work on my provider?</h3>
-    <p>Native search is wired for OpenRouter (<code>:online</code>) and
-    Anthropic (server-side web_search tool). Other providers show the toggle as
-    unavailable instead of silently pretending to search.</p>
+    <h2><span class="mark">search</span>Why is web search off for my provider?</h2>
+    <p>Native search exists for OpenRouter (<code>:online</code>) and Anthropic
+    (server-side web_search). Others show the toggle as unavailable rather than
+    pretending to search.</p>
 
-    <h3>Ollama / LM Studio can't connect</h3>
-    <p>On a phone, <code>localhost</code> is the phone itself. Use your PC's LAN
-    IP (e.g. <code>http://192.168.1.10:11434/v1</code>), make sure both devices
-    are on the same network and the server binds to <code>0.0.0.0</code>, not
-    just loopback.</p>
+    <h2><span class="mark">lan</span>Ollama won't connect</h2>
+    <p>On a phone, <code>localhost</code> is the phone. Use your computer's LAN
+    IP — <code>http://192.168.1.10:11434/v1</code> — keep both devices on the
+    same network, and make the server listen on all interfaces
+    (<code>OLLAMA_HOST=0.0.0.0</code>).</p>
 
-    <h3>How do I report a bug?</h3>
+    <h2><span class="mark">bugs</span>How do I report a bug?</h2>
     <p>Open an issue at
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile/issues">GitHub Issues</a>.
-    If you see the in-app red error screen, copy the message it shows — it
-    pinpoints the failure.</p>
+    <a href="https://github.com/mamad7202202/dragon-agent-mobile/issues">GitHub
+    Issues</a>. If you hit the in-app error screen, copy the message it shows —
+    it pinpoints the failure.</p>
 
-    <h3>Is it really open source?</h3>
-    <p>MIT — everything, including this site. The desktop sibling lives at
+    <h2><span class="mark">oss</span>Is it really open source?</h2>
+    <p>MIT — the app, the CI, and this site. The desktop sibling lives at
     <a href="https://github.com/mamad7202202/dragon-agent">mamad7202202/dragon-agent</a>.</p>
 
     <div class="pager">
-      <a href="updates.html"><span class="small">Previous</span>← Updating</a>
-      <a href="getting-started.html" class="next"><span class="small">Next</span>Back to start →</a>
+      <a class="prev" href="updates.html">updating</a>
+      <a class="next" href="getting-started.html">back to start</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
 </body>
 </html>

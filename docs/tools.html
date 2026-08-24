@@ -4,83 +4,96 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tools &amp; approvals — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html">Docs</a>
-    <a href="memory.html">Memory</a>
-    <a href="tools.html" class="active">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html">Getting started</a>
-    <a href="providers.html">Providers &amp; models</a>
-    <a href="memory.html">Memory system</a>
-    <a href="tools.html" class="active">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html">Updating</a>
-    <a href="faq.html">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a class="active" href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
-    <h1>Tools &amp; approvals</h1>
-    <p>The agent doesn't just talk — it acts. Every tool call is visible as a
-    live activity chip in the chat: what ran, its arguments, its result and its
-    status (<em>running → done / denied / error</em>). Tap a chip to inspect the
-    raw JSON.</p>
+  <article>
+    <p class="crumb">docs / <b>tools</b></p>
+    <h1>The toolbox &amp; the gate</h1>
+    <p class="standfirst">The dragon doesn't just talk — it calls tools. Every
+    call shows up as a live chip in the chat: name, arguments, result and
+    status. Tap a chip to read the raw JSON.</p>
 
-    <h2>Toolbox</h2>
+    <h2><span class="mark">toolbox</span>What it can do</h2>
     <table>
-      <tr><th>Tool</th><th>What it does</th><th>Sensitive</th></tr>
-      <tr><td><code>save_memory</code></td><td>Stores a durable fact (Hybrid mode)</td><td>—</td></tr>
-      <tr><td><code>memory_write</code></td><td>Upserts bullets into outline sections (Outline mode)</td><td>—</td></tr>
-      <tr><td><code>list_memories</code></td><td>Dumps everything currently remembered</td><td>—</td></tr>
-      <tr><td><code>datetime</code></td><td>Current local date, time, weekday &amp; timezone</td><td>—</td></tr>
-      <tr><td><code>calculator</code></td><td>Exact arithmetic via a safe parser — no mental math slips</td><td>—</td></tr>
-      <tr><td><code>device_info</code></td><td>OS, version, locale, timezone, app version</td><td>—</td></tr>
-      <tr><td><code>forget_memory</code></td><td>Deletes a stored fact</td><td>🛡️ yes</td></tr>
-      <tr><td><code>memory_delete</code></td><td>Deletes outline entries / sections</td><td>🛡️ yes</td></tr>
-      <tr><td><code>remember_rule</code></td><td>Appends a standing rule to MEMORY.md</td><td>🛡️ yes</td></tr>
+      <tr><th>tool</th><th>what it does</th><th>gate</th></tr>
+      <tr><td>save_memory</td><td>Stores a durable fact <span class="free">(hybrid)</span></td><td><span class="free">open</span></td></tr>
+      <tr><td>memory_write</td><td>Upserts outline bullets <span class="free">(outline)</span></td><td><span class="free">open</span></td></tr>
+      <tr><td>memory_read</td><td>Dumps the full memory for auditing</td><td><span class="free">open</span></td></tr>
+      <tr><td>list_memories</td><td>Lists everything remembered, with ids</td><td><span class="free">open</span></td></tr>
+      <tr><td>datetime</td><td>Local date, time, weekday, timezone</td><td><span class="free">open</span></td></tr>
+      <tr><td>calculator</td><td>Exact arithmetic through a real parser — no mental-math slips</td><td><span class="free">open</span></td></tr>
+      <tr><td>device_info</td><td>OS, version, locale, timezone, app version</td><td><span class="free">open</span></td></tr>
+      <tr><td>forget_memory</td><td>Deletes a stored fact</td><td><span class="shield">🛡 asks you</span></td></tr>
+      <tr><td>memory_delete</td><td>Deletes outline entries or sections</td><td><span class="shield">🛡 asks you</span></td></tr>
+      <tr><td>remember_rule</td><td>Appends a standing rule to MEMORY.md</td><td><span class="shield">🛡 asks you</span></td></tr>
     </table>
+    <p>No filesystem, no contacts, no microphone. The mobile toolbox is
+    deliberately narrow — memory, time, math, device basics.</p>
 
-    <h2>The approval gate</h2>
-    <p>When the agent calls a 🛡️ sensitive tool, the turn <strong>pauses</strong>
-    and an inline card appears with three choices:</p>
+    <h2><span class="mark">gate</span>How approvals work</h2>
+    <p>When a 🛡 tool fires, the turn pauses mid-flight and an inline card
+    appears with three choices:</p>
     <ul>
-      <li><strong>Allow once</strong> — approve just this call.</li>
-      <li><strong>Always (session)</strong> — approve this tool for the rest of
-          the current session. The agent stops asking. Close the app or start a
-          new session and the gate re-arms.</li>
-      <li><strong>Deny</strong> — the call is refused; the agent receives
-          <code>{"denied": true}</code> and adapts instead of failing.</li>
+      <li><strong>Allow once</strong> — approve this call only.</li>
+      <li><strong>Always (session)</strong> — approve the tool for the rest of
+      this session. Closing the app or starting a new session re-arms the gate.</li>
+      <li><strong>Deny</strong> — the call never runs; the dragon receives
+      <code>{"denied": true}</code> and adapts instead of erroring.</li>
     </ul>
-    <div class="note"><b>Design rule:</b> reading and remembering is free;
-    <em>destroying or committing</em> your memory always asks. You can also deny
-    mid-flight — nothing executes before you decide.</div>
+    <pre><span class="s">you</span>      forget everything about my sister
+<span class="e">dragon</span>   <span class="c">forget_memory { "id": "a3f9" }</span>   <span class="c">← paused</span>
+         <span class="c">[ Deny ]  [ Always (session) ]  [ Allow once ]</span></pre>
+    <p><strong>The rule of thumb:</strong> remembering is free; destroying or
+    committing memory always asks.</p>
 
-    <h2>Watching it think</h2>
-    <p>With deep thinking enabled, reasoning streams into a golden
-    <strong>Thinking…</strong> pill above the answer — tap to expand the full
-    thought process. Tool chips, thinking and per-message token usage together
-    give you a complete flight recorder of every turn.</p>
+    <h2><span class="mark">flight</span>Watching a turn happen</h2>
+    <p>With deep thinking on, reasoning streams into the Thinking pill above
+    the answer. Tool chips tick from <em>running</em> to
+    <em>done / denied / error</em> in real time, and each answer carries its
+    token count. Together it's a flight recorder for every turn — tap anything
+    to inspect it.</p>
 
     <div class="pager">
-      <a href="memory.html"><span class="small">Previous</span>← Memory system</a>
-      <a href="commands.html" class="next"><span class="small">Next</span>Chat commands →</a>
+      <a class="prev" href="memory.html">memory system</a>
+      <a class="next" href="commands.html">chat commands</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
 </body>
 </html>

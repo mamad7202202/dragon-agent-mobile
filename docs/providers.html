@@ -4,94 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Providers &amp; models — Dragon Agent Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sometype+Mono:ital,wght@0,400..700;1,400..700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav><div class="inner">
-  <a class="brand" href="index.html">🔥 Dragon Agent</a>
-  <div class="links">
-    <a href="getting-started.html">Docs</a>
-    <a href="memory.html">Memory</a>
-    <a href="tools.html">Tools</a>
-    <a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a>
-  </div>
-</div></nav>
 
-<div class="wrap docs-layout">
-  <aside class="docs-nav">
-    <a href="getting-started.html">Getting started</a>
-    <a href="providers.html" class="active">Providers &amp; models</a>
-    <a href="memory.html">Memory system</a>
-    <a href="tools.html">Tools &amp; approvals</a>
-    <a href="commands.html">Chat commands</a>
-    <a href="updates.html">Updating</a>
-    <a href="faq.html">FAQ</a>
+<nav class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="wordmark" href="index.html">dragon<em>·</em>agent</a>
+    <div class="topbar-links">
+      <a href="getting-started.html">docs/</a>
+      <a href="memory.html">memory/</a>
+      <a href="tools.html">tools/</a>
+      <a href="https://github.com/mamad7202202/dragon-agent-mobile">github ↗</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside class="rail">
+    <p class="rail-label">sessions</p>
+    <a href="getting-started.html"><span class="sid">0x1F</span> getting started</a>
+    <a class="active" href="providers.html"><span class="sid">0x2A</span> providers</a>
+    <a href="memory.html"><span class="sid">0x3C</span> memory</a>
+    <a href="tools.html"><span class="sid">0x44</span> tools</a>
+    <a href="commands.html"><span class="sid">0x51</span> commands</a>
+    <a href="updates.html"><span class="sid">0x5E</span> updates</a>
+    <a href="faq.html"><span class="sid">0x6D</span> faq</a>
   </aside>
 
-  <main class="docs-body">
-    <span class="crumb">Documentation</span>
+  <article>
+    <p class="crumb">docs / <b>providers</b></p>
     <h1>Providers &amp; models</h1>
-    <p>Dragon speaks two protocols: <strong>OpenAI-compatible</strong> (used by
-    most of the ecosystem) and <strong>Anthropic-native</strong>. Pick a preset
-    and the protocol, URL and suggestions are configured for you.</p>
+    <p class="standfirst">Dragon speaks two protocols: OpenAI-compatible (most
+    of the ecosystem) and Anthropic-native. Pick a preset and the URL, protocol
+    and model suggestions are set for you.</p>
 
-    <h2>Built-in presets</h2>
+    <h2><span class="mark">presets</span>Built-in endpoints</h2>
     <table>
-      <tr><th>Preset</th><th>Base URL</th><th>Notes</th></tr>
-      <tr><td><strong>Google AI Studio</strong></td><td><code>…/v1beta/openai</code></td><td>Free keys, Gemini models</td></tr>
-      <tr><td><strong>OpenRouter</strong></td><td><code>openrouter.ai/api/v1</code></td><td>400+ models, one key, web search</td></tr>
-      <tr><td><strong>OpenAI</strong></td><td><code>api.openai.com/v1</code></td><td>Exact token usage reporting</td></tr>
-      <tr><td><strong>Anthropic</strong></td><td><code>api.anthropic.com/v1</code></td><td>Native protocol · deep thinking · web search</td></tr>
-      <tr><td><strong>Groq</strong></td><td><code>api.groq.com/openai/v1</code></td><td>Ultra-fast open models</td></tr>
-      <tr><td><strong>DeepSeek</strong></td><td><code>api.deepseek.com/v1</code></td><td>chat &amp; reasoner models</td></tr>
-      <tr><td><strong>Ollama</strong></td><td><code>localhost:11434/v1</code></td><td>Use your PC's LAN IP on mobile</td></tr>
-      <tr><td><strong>LM Studio</strong></td><td><code>localhost:1234/v1</code></td><td>Use the server's LAN address</td></tr>
-      <tr><td><strong>Custom</strong></td><td>your endpoint</td><td>Any OpenAI-compatible API</td></tr>
+      <tr><th>preset</th><th>base url</th><th>notes</th></tr>
+      <tr><td>google</td><td><code>…/v1beta/openai</code></td><td>Free keys, Gemini models</td></tr>
+      <tr><td>openrouter</td><td><code>openrouter.ai/api/v1</code></td><td>One key, hundreds of models, web search</td></tr>
+      <tr><td>openai</td><td><code>api.openai.com/v1</code></td><td>Exact per-message token counts</td></tr>
+      <tr><td>anthropic</td><td><code>api.anthropic.com/v1</code></td><td>Native protocol, real thinking budgets, web search</td></tr>
+      <tr><td>groq</td><td><code>api.groq.com/openai/v1</code></td><td>Very fast open models</td></tr>
+      <tr><td>deepseek</td><td><code>api.deepseek.com/v1</code></td><td>chat and reasoner models</td></tr>
+      <tr><td>ollama</td><td><code>localhost:11434/v1</code></td><td>Your PC's LAN address, on a phone</td></tr>
+      <tr><td>lmstudio</td><td><code>localhost:1234/v1</code></td><td>Same — use the LAN address</td></tr>
+      <tr><td>custom</td><td>your endpoint</td><td>Anything OpenAI-compatible</td></tr>
     </table>
 
-    <h2>Switching models mid-chat</h2>
-    <p>Tap the <strong>model chip in the top bar</strong> — a sheet lists your
-    provider's models plus a free-text field for any custom id. The switch
-    applies from the next message; history stays intact.</p>
+    <h2><span class="mark">switch</span>Changing models mid-chat</h2>
+    <p>Tap the model chip in the top bar. The sheet lists your provider's
+    models plus a free-text field for any id. The switch applies from the next
+    message; the transcript stays untouched.</p>
 
-    <h2>Deep thinking (reasoning)</h2>
-    <p>Settings → Intelligence → <strong>Deep thinking</strong>:</p>
+    <h2><span class="mark">think</span>Deep thinking</h2>
+    <p>Settings → Intelligence → Deep thinking sets the reasoning effort:</p>
     <ul>
-      <li><strong>OpenAI-compatible</strong> providers receive
-          <code>reasoning_effort: low | medium | high</code>. Gemini 2.5+,
-          OpenAI o-series/gpt-5 class and OpenRouter reasoning models honour it;
-          others ignore it safely.</li>
-      <li><strong>Anthropic</strong> gets a real thinking budget
-          (2k / 8k / 16k tokens) with extended thinking enabled.</li>
+      <li><strong>OpenAI-compatible</strong> — the request carries
+      <code>reasoning_effort: low | medium | high</code>. Gemini 2.5+, OpenAI
+      reasoning models and OpenRouter honour it; models without reasoning
+      ignore it safely.</li>
+      <li><strong>Anthropic</strong> — a real thinking budget: 2k, 8k or 16k
+      tokens of extended thinking.</li>
     </ul>
-    <p>When the model thinks, a golden <em>“Thinking…”</em> pill appears above the
-    answer — tap it to read the raw thought process.</p>
+    <p>When the model thinks, a golden <em>Thinking…</em> pill grows above the
+    answer. Tap it to read the raw reasoning.</p>
 
-    <h2>Web search</h2>
-    <p>Toggle in Settings → Intelligence. Implemented natively per provider:</p>
-    <ul>
-      <li><strong>OpenRouter</strong> — appends <code>:online</code> to the model.</li>
-      <li><strong>Anthropic</strong> — enables the server-side
-          <code>web_search</code> tool (up to 3 searches per turn).</li>
-    </ul>
-    <p>The toggle is disabled with an explanation for providers without native
-    search support.</p>
+    <h2><span class="mark">search</span>Web search</h2>
+    <p>Toggle in Settings → Intelligence. It's wired natively, not faked:
+    OpenRouter appends <code>:online</code> to the model; Anthropic enables its
+    server-side <code>web_search</code> tool (up to three searches per turn).
+    Providers without native search say so instead of pretending.</p>
 
-    <h2>Token usage</h2>
-    <p>When the provider reports usage, each answer shows a subtle
-    <code>⚡ 1.4k tokens</code> badge next to the copy button — no clutter,
-    just awareness.</p>
+    <h2><span class="mark">tokens</span>Usage, per message</h2>
+    <p>When a provider reports usage, each answer gets a small
+    <code>1.4k tokens</code> badge next to the copy button. That's it — no
+    dashboards, no nagging.</p>
 
     <div class="pager">
-      <a href="getting-started.html"><span class="small">Previous</span>← Getting started</a>
-      <a href="memory.html" class="next"><span class="small">Next</span>Memory system →</a>
+      <a class="prev" href="getting-started.html">getting started</a>
+      <a class="next" href="memory.html">memory system</a>
     </div>
-  </main>
+  </article>
 </div>
 
-<footer><div class="wrap inner">
-  <span>© 2026 mamad720220 · MIT</span>
-  <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">GitHub</a></span>
-</div></footer>
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 mamad720220 · MIT</span>
+    <span><a href="https://github.com/mamad7202202/dragon-agent-mobile">source</a> · <a href="https://mamad7202202.github.io/dragon-agent-mobile/">docs home</a></span>
+  </div>
+</footer>
 </body>
 </html>
