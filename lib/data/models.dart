@@ -98,8 +98,7 @@ class Bubble {
 }
 
 /// Derive display bubbles from a neutral wire list.
-List<Bubble> deriveBubbles(List<Map<String, dynamic>> wire,
-    {String? liveText, String? liveThinking, int liveIndex = -1}) {
+List<Bubble> deriveBubbles(List<Map<String, dynamic>> wire) {
   // collect tool results by call id for status/output attachment
   final resultsById = <String, Map<String, dynamic>>{};
   for (final m in wire) {
@@ -131,7 +130,6 @@ List<Bubble> deriveBubbles(List<Map<String, dynamic>> wire,
           kind: BubbleKind.assistant,
           text: m['c'] as String,
           thinking: m['k'] as String?,
-          streaming: idx == liveIndex && liveText != null,
         ));
       case 'at':
         for (final t in (m['t'] as List).cast<Map<String, dynamic>>()) {
@@ -154,15 +152,6 @@ List<Bubble> deriveBubbles(List<Map<String, dynamic>> wire,
             text:
                 '${(m['n'] as num?)?.toInt() ?? 0} older turns folded into memory'));
     }
-  }
-  if (liveText != null && liveIndex >= wire.length) {
-    out.add(Bubble(
-      id: 'live',
-      kind: BubbleKind.assistant,
-      text: liveText,
-      thinking: liveThinking,
-      streaming: true,
-    ));
   }
   return out;
 }

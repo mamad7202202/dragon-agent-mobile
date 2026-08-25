@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'proxy_service.dart';
+
 /// Direct GitHub REST integration — the agent operates the user's account:
 /// repos, file pushes, issues, PRs and Actions workflows.
 class GitHubService {
@@ -168,13 +170,13 @@ class GitHubService {
         'Content-Type': 'application/json',
       };
 
-  final http.Client _client = http.Client();
-
   Future<dynamic> _req(String method, String path, {Object? body}) async {
     final uri = Uri.parse('https://api.github.com$path');
     final req = http.Request(method, uri)..headers.addAll(_headers);
     if (body != null) req.body = jsonEncode(body);
-    final res = await _client.send(req).timeout(const Duration(seconds: 30));
+    final res = await ProxyHttp.forScope(ProxyScope.tools)
+        .send(req)
+        .timeout(const Duration(seconds: 30));
     final text = await res.stream.bytesToString();
     if (res.statusCode >= 300) {
       String msg = text;

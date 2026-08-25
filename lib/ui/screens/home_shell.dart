@@ -6,7 +6,7 @@ import '../../data/llm.dart' show ProviderCfg;
 import '../../data/sessions.dart';
 import '../../state/app_state.dart';
 import '../widgets/composer.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
 import '../widgets/glass.dart';
 import '../widgets/update_banner.dart';
 import 'chat_view.dart';
@@ -124,57 +124,60 @@ class _NavBar extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      child: GlassContainer(
-        radius: 22,
-        blur: 22,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-        child: Row(
-          children: [
-            _NavBtn(
-              icon: Icons.menu_rounded,
-              tooltip: 'Menu',
-              onTap: onMenu,
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => showModelSheet(context),
-                child: Container(
-                  height: 38,
-                  margin: const EdgeInsets.symmetric(horizontal: 5),
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
-                  decoration: BoxDecoration(
-                    color: scheme.onSurface.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Row(
-                    children: [
-                      const FlameLogo(size: 19),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Text(
-                          state.configured ? state.activeModel : 'not set up',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface.withValues(alpha: 0.9),
+      child: GlassRim(
+        radius: 23,
+        child: GlassContainer(
+          radius: 22,
+          blur: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          child: Row(
+            children: [
+              _NavBtn(
+                icon: Icons.menu_rounded,
+                tooltip: 'Menu',
+                onTap: onMenu,
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => showModelSheet(context),
+                  child: Container(
+                    height: 38,
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                    decoration: BoxDecoration(
+                      color: scheme.onSurface.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Row(
+                      children: [
+                        const DragonMonogram(size: 19),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            state.configured ? state.activeModel : 'not set up',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface.withValues(alpha: 0.9),
+                            ),
                           ),
                         ),
-                      ),
-                      Icon(Icons.expand_more_rounded,
-                          size: 18, color: DragonColors.textDim),
-                    ],
+                        Icon(Icons.expand_more_rounded,
+                            size: 18, color: DragonColors.textDim),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            _NavBtn(
-              icon: Icons.add_rounded,
-              tooltip: 'New session',
-              emphasized: true,
-              onTap: onNew,
-            ),
-          ],
+              _NavBtn(
+                icon: Icons.add_rounded,
+                tooltip: 'New session',
+                emphasized: true,
+                onTap: onNew,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -245,7 +248,7 @@ class _AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
               child: Row(
                 children: [
-                  const FlameLogo(size: 30),
+                  const DragonMonogram(size: 30),
                   const SizedBox(width: 11),
                   Text('Dragon Agent',
                       style: Theme.of(context).textTheme.titleMedium),
@@ -279,7 +282,7 @@ class _AppDrawer extends StatelessWidget {
                     },
                   ),
                   _DrawerAction(
-                    icon: Icons.tune_rounded,
+                    icon: Icons.settings_rounded,
                     label: 'Settings',
                     onTap: () => _push(context, const SettingsScreen()),
                   ),

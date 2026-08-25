@@ -9,7 +9,7 @@ import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import 'code_block.dart';
-import 'flame_logo.dart';
+import 'dragon_mark.dart';
 
 class MessageBubble extends StatelessWidget {
   final Bubble bubble;
@@ -108,6 +108,51 @@ class _AssistantBubble extends StatefulWidget {
 class _AssistantBubbleState extends State<_AssistantBubble> {
   var _thinkingOpen = false;
 
+  // Markdown parse cache — rebuilding an identical widget instance lets
+  // Flutter skip the subtree, so streaming ticks never re-parse old messages.
+  Widget? _mdCache;
+  String? _mdKey;
+
+  Widget _markdown(BuildContext context) {
+    final key =
+        '${widget.text}\u0000${widget.streaming}\u0000${Theme.of(context).brightness}';
+    if (_mdCache != null && _mdKey == key) return _mdCache!;
+    _mdKey = key;
+    _mdCache = MarkdownBody(
+      data: widget.text.isEmpty && widget.streaming
+          ? '▍'
+          : '${widget.text}${widget.streaming ? ' ▍' : ''}',
+      selectable: true,
+      builders: {
+        'pre': CodeBlockBuilder(),
+      },
+      styleSheet:
+          MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+        p: Theme.of(context)
+            .textTheme
+            .bodyMedium!
+            .copyWith(fontSize: 15),
+        codeblockDecoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF101218)
+              : const Color(0xFFF3F1EE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: DragonColors.stroke),
+        ),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: DragonColors.ember, width: 3),
+          ),
+          color: DragonColors.ember.withValues(alpha: 0.06),
+        ),
+        horizontalRuleDecoration: BoxDecoration(
+          border: Border(top: BorderSide(color: DragonColors.stroke)),
+        ),
+      ),
+    );
+    return _mdCache!;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -125,7 +170,7 @@ class _AssistantBubbleState extends State<_AssistantBubble> {
           children: [
             Row(
               children: [
-                const FlameLogo(size: 22),
+                const DragonMonogram(size: 22, plain: true),
                 const SizedBox(width: 7),
                 Text(
                   'Dragon',
@@ -246,38 +291,7 @@ class _AssistantBubbleState extends State<_AssistantBubble> {
                   bottomEnd: Radius.circular(20),
                 ),
               ),
-              child: MarkdownBody(
-                data: widget.text.isEmpty && widget.streaming
-                    ? '▍'
-                    : '${widget.text}${widget.streaming ? ' ▍' : ''}',
-                selectable: true,
-                builders: {
-                  'pre': CodeBlockBuilder(),
-                },
-                styleSheet:
-                    MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                  p: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 15),
-                  codeblockDecoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF101218)
-                        : const Color(0xFFF3F1EE),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: DragonColors.stroke),
-                  ),
-                  blockquoteDecoration: BoxDecoration(
-                    border: Border(
-                      left: BorderSide(color: DragonColors.ember, width: 3),
-                    ),
-                    color: DragonColors.ember.withValues(alpha: 0.06),
-                  ),
-                  horizontalRuleDecoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: DragonColors.stroke)),
-                  ),
-                ),
-              ),
+              child: _markdown(context),
             ),
           ],
         ),

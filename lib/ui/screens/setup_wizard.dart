@@ -6,7 +6,7 @@ import '../../core/presets.dart';
 import '../../core/theme.dart';
 import '../../data/llm.dart';
 import '../../state/app_state.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
 
 /// First-run setup wizard: provider → connection → model.
 class SetupWizard extends StatefulWidget {
@@ -92,7 +92,7 @@ class _SetupWizardState extends State<SetupWizard> {
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 6),
                 child: Row(
                   children: [
-                    const FlameLogo(size: 40),
+                    const DragonMonogram(size: 38),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -415,7 +415,7 @@ class _SetupWizardState extends State<SetupWizard> {
             border: Border.all(color: DragonColors.stroke),
           ),
           child: Row(children: [
-            const FlameLogo(size: 26),
+            const DragonMonogram(size: 26),
             const SizedBox(width: 11),
             Expanded(
               child: Text(

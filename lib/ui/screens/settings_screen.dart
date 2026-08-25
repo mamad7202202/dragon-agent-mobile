@@ -6,10 +6,11 @@ import '../../core/theme.dart';
 import '../../data/llm.dart' show ThinkingLevel, ThinkingLevelX;
 import '../../services/update_service.dart' show UpdatePhase;
 import '../../state/app_state.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
 import '../widgets/update_banner.dart';
 import 'integrations_screen.dart';
 import 'memories_screen.dart';
+import 'proxy_screen.dart';
 import 'sessions_screen.dart';
 import 'setup_wizard.dart';
 import 'skills_library_screen.dart';
@@ -63,6 +64,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const IntegrationsScreen())),
           ),
+          const SizedBox(height: 8),
+          _CardTile(
+            leading: Icon(Icons.vpn_lock_rounded,
+                color: state.proxy.enabled ? DragonColors.gold : DragonColors.textDim),
+            title: 'Proxy',
+            subtitle: state.proxy.enabled
+                ? 'On · ${state.proxy.server}\n'
+                    'AI: ${_proxyAiLabel(state)} · Tools: ${state.proxy.integrations ? 'on' : 'off'}'
+                : 'Off — route AI & tool traffic through your own server',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProxyScreen())),
+          ),
           const SizedBox(height: 16),
 
           // ---------------- appearance ----------------
@@ -112,51 +126,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 : null,
           ),
           const SizedBox(height: 8),
-          _CardTile(
-            padding: EdgeInsets.zero,
+          _SliderCard(
             title: 'Temperature',
-            subtitle: 'Creativity · ${s.temperature.toStringAsFixed(1)}',
-            content: Slider(
-              value: s.temperature,
-              min: 0,
-              max: 1,
-              divisions: 10,
-              label: s.temperature.toStringAsFixed(1),
-              onChanged: (v) =>
-                  context.read<AppState>().updateSettings(s..temperature = v),
-            ),
+            subtitle: 'Creativity',
+            valueLabel: s.temperature.toStringAsFixed(1),
+            value: s.temperature,
+            min: 0,
+            max: 1,
+            divisions: 10,
+            onChanged: (v) =>
+                context.read<AppState>().updateSettings(s..temperature = v),
           ),
           const SizedBox(height: 8),
-          _CardTile(
-            padding: EdgeInsets.zero,
+          _SliderCard(
             title: 'Max tokens',
-            subtitle: 'Response length cap · ${s.maxTokens}',
-            content: Slider(
-              value: s.maxTokens.toDouble(),
-              min: 512,
-              max: 8192,
-              divisions: 15,
-              label: '${s.maxTokens}',
-              onChanged: (v) =>
-                  context.read<AppState>().updateSettings(s..maxTokens = v.round()),
-            ),
+            subtitle: 'Response length cap',
+            valueLabel: '${s.maxTokens}',
+            value: s.maxTokens.toDouble(),
+            min: 512,
+            max: 8192,
+            divisions: 15,
+            onChanged: (v) =>
+                context.read<AppState>().updateSettings(s..maxTokens = v.round()),
           ),
           const SizedBox(height: 8),
-          _CardTile(
-            padding: EdgeInsets.zero,
+          _SliderCard(
             title: 'Compaction threshold',
-            subtitle:
-                'Fold older turns into a summary after ${s.compactionAfter} messages',
-            content: Slider(
-              value: s.compactionAfter.toDouble(),
-              min: 12,
-              max: 80,
-              divisions: 17,
-              label: '${s.compactionAfter}',
-              onChanged: (v) => context
-                  .read<AppState>()
-                  .updateSettings(s..compactionAfter = v.round()),
-            ),
+            subtitle: 'Fold older turns into a summary after this many messages',
+            valueLabel: '${s.compactionAfter}',
+            value: s.compactionAfter.toDouble(),
+            min: 12,
+            max: 80,
+            divisions: 17,
+            onChanged: (v) => context
+                .read<AppState>()
+                .updateSettings(s..compactionAfter = v.round()),
           ),
           const SizedBox(height: 16),
 
@@ -246,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ---------------- about ----------------
           _SectionHeader('About'),
           _CardTile(
-            leading: const FlameLogo(size: 30),
+            leading: const DragonMonogram(size: 30),
             title: 'Dragon Agent Mobile',
             subtitle:
                 'v${state.appVersion} · open-source · MIT\nCompanion to the desktop dragon-agent',
@@ -270,8 +274,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _confirmReset(BuildContext context) async {
-    final ok = await showDialog<bool>(
+  String _proxyAiLabel(AppState state) {
+    if (!state.proxy.ai) return 'off';
+    return state.proxy.aiProvider.isEmpty ? 'all' : state.proxy.aiProvider;
+  }
+
+  Future<void> _confirmReset(BuildContext context) async {    final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset everything?'),
@@ -398,6 +406,106 @@ class _SegmentCard extends StatelessWidget {
                           : const Color(0x14000000))),
                   shape: WidgetStatePropertyAll(RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12))),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Slider row: title + value pill share one line, the track sits directly
+/// underneath with no dead space — fixes the "label floats above the bar" look.
+class _SliderCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String valueLabel;
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final ValueChanged<double> onChanged;
+
+  const _SliderCard({
+    required this.title,
+    required this.subtitle,
+    required this.valueLabel,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: dark ? DragonColors.card : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 14, 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(title,
+                      style: const TextStyle(
+                          fontSize: 14.5, fontWeight: FontWeight.w600)),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: DragonColors.ember.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    valueLabel,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: DragonColors.ember),
+                  ),
+                ),
+              ],
+            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+            SizedBox(
+              height: 30,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 14),
+                  showValueIndicator: ShowValueIndicator.never,
+                ),
+                child: Slider(
+                  value: value.clamp(min, max),
+                  min: min,
+                  max: max,
+                  divisions: divisions,
+                  onChanged: onChanged,
                 ),
               ),
             ),

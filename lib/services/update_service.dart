@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'proxy_service.dart';
+
 enum UpdatePhase { idle, checking, downloading, downloaded, error }
 
 /// Information about a newer release on GitHub.
@@ -30,7 +32,8 @@ class UpdateService {
   static const _repo = 'mamad7202202/dragon-agent-mobile';
   static const _apiUrl = 'https://api.github.com/repos/$_repo/releases';
 
-  final http.Client _http = http.Client();
+  /// Update traffic follows the integrations proxy scope.
+  http.Client get _http => ProxyHttp.forScope(ProxyScope.tools);
 
   /// Current app version, e.g. "1.4.0".
   Future<String> currentVersion() async {
@@ -186,5 +189,5 @@ class UpdateService {
     return null;
   }
 
-  void dispose() => _http.close();
+  void dispose() {}
 }

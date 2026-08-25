@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../state/app_state.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
 
 /// Sessions browser — episodic memory made visible.
 class SessionsScreen extends StatelessWidget {
@@ -21,7 +21,7 @@ class SessionsScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const FlameLogo(size: 54),
+                  const DragonAscii(fontSize: 5.6),
                   const SizedBox(height: 14),
                   Text('No sessions yet',
                       style: Theme.of(context).textTheme.titleMedium),

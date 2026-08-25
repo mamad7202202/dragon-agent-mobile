@@ -5,7 +5,7 @@ import '../../core/theme.dart';
 import '../../data/graph_memory.dart';
 import '../../data/memory.dart';
 import '../../state/app_state.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
 
 /// Memory manager — adapts to the active engine:
 /// Hybrid → semantic facts · Outline → sections & bullets.
@@ -490,7 +490,7 @@ class _EmptyOutline extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const FlameLogo(size: 54),
+          const DragonAscii(fontSize: 5.6),
           const SizedBox(height: 14),
           Text('The outline is empty',
               style: Theme.of(context).textTheme.titleMedium),
@@ -564,7 +564,7 @@ class _EmptyMemories extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const FlameLogo(size: 54),
+          const DragonAscii(fontSize: 5.6),
           const SizedBox(height: 14),
           Text('No facts yet', style: Theme.of(context).textTheme.titleMedium),
           Text(
