@@ -114,13 +114,15 @@ class _ComposerState extends State<Composer> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
-        child: GlassContainer(
-          radius: 26,
-          blur: 24,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: GlassRim(
+          radius: 27,
+          child: GlassContainer(
+            radius: 26,
+            blur: 36,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // active skill chip
               if (state.activeSkill != null)
                 Padding(
@@ -287,6 +289,7 @@ class _ComposerState extends State<Composer> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

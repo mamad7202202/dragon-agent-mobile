@@ -6,8 +6,13 @@ import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../widgets/bubble.dart';
-import '../widgets/flame_logo.dart';
+import '../widgets/dragon_mark.dart';
+
 /// Main chat surface.
+///
+/// Perf note: the transcript list rebuilds only when [AppState.bubbles]
+/// changes. The in-flight streaming bubble hangs below the list and listens
+/// to AppState.live directly, so token deltas never rebuild the list.
 class ChatView extends StatefulWidget {
   final VoidCallback openMemories;
   const ChatView({super.key, required this.openMemories});
@@ -48,55 +53,31 @@ class _ChatViewState extends State<ChatView> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final bubbles = state.bubbles;
-    final liveText = state.liveText;
-    final liveThinking = state.liveThinking;
     final approval = state.pendingApproval;
-    // extra live items rendered at the bottom of the reversed list
-    final extraCount =
-        (liveText != null ? 1 : 0) + (approval != null ? 1 : 0);
 
     return Stack(
       children: [
-        bubbles.isEmpty && extraCount == 0
-            ? _EmptyState(openMemories: widget.openMemories)
-            : GestureDetector(
-                onTap: () => FocusScope.of(context).unfocus(),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ListView.builder(
-                    reverse: true,
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
-                    itemCount: bubbles.length + extraCount,
-                    itemBuilder: (context, i) {
-                      // reversed index
-                      final idx = bubbles.length + extraCount - 1 - i;
-                      if (approval != null && idx == bubbles.length + 1) {
-                        return ApprovalCard(request: approval)
-                            .animate()
-                            .fadeIn(duration: 250.ms)
-                            .slideY(begin: 0.15, end: 0);
-                      }
-                      if (liveText != null && idx == bubbles.length) {
-                        return MessageBubble(
-                          bubble: Bubble(
-                            id: 'live',
-                            kind: BubbleKind.assistant,
-                            text: liveText.isEmpty ? '' : liveText,
-                            thinking: liveThinking,
-                            streaming: true,
-                          ),
-                        );
-                      }
-                      return MessageBubble(bubble: bubbles[idx]);
-                    },
-                  ),
-                ),
+        if (bubbles.isEmpty)
+          _EmptyState(openMemories: widget.openMemories)
+        else
+          GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ListView.builder(
+                reverse: true,
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+                itemCount: bubbles.length,
+                itemBuilder: (context, i) =>
+                    MessageBubble(bubble: bubbles[bubbles.length - 1 - i]),
               ),
-        if (_showJump)
+            ),
+          ),
+        if (_showJump && bubbles.isNotEmpty)
           Positioned(
             right: 18,
-            bottom: 18,
+            bottom: 12,
             child: FloatingActionButton.small(
               heroTag: 'jump',
               onPressed: _jumpToBottom,
@@ -106,6 +87,42 @@ class _ChatViewState extends State<ChatView> {
               child: const Icon(Icons.keyboard_arrow_down_rounded),
             ),
           ),
+        // live bubble + approval card sit under the list, above the composer.
+        // They animate independently and never trigger transcript rebuilds.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (approval != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ApprovalCard(request: approval)
+                      .animate()
+                      .fadeIn(duration: 250.ms)
+                      .slideY(begin: 0.15, end: 0),
+                ),
+              ValueListenableBuilder<({String text, String thinking})?>(
+                valueListenable: state.live,
+                builder: (context, live, _) {
+                  if (live == null) return const SizedBox.shrink();
+                  return MessageBubble(
+                    bubble: Bubble(
+                      id: 'live',
+                      kind: BubbleKind.assistant,
+                      text: live.text,
+                      thinking:
+                          live.thinking.isEmpty ? null : live.thinking,
+                      streaming: true,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -130,15 +147,10 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const FlameLogo(size: 92)
+            const DragonAscii(fontSize: 7.2)
                 .animate(onPlay: (c) => c.repeat(reverse: true))
-                .scale(
-                  begin: const Offset(1, 1),
-                  end: const Offset(1.05, 1.05),
-                  duration: 2200.ms,
-                  curve: Curves.easeInOut,
-                ),
-            const SizedBox(height: 18),
+                .fade(begin: 0.65, end: 1.0, duration: 2200.ms),
+            const SizedBox(height: 14),
             Text(
               'Dragon Agent',
               style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontSize: 30),

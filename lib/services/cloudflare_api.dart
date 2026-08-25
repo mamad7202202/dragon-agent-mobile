@@ -3,13 +3,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import 'proxy_service.dart';
+
 /// Direct Cloudflare API v4 integration — the agent manages the user's
 /// account: KV namespaces, D1 databases and Worker deployments.
 class CloudflareService {
   String token = '';
   bool get connected => token.trim().isNotEmpty;
 
-  final http.Client _client = http.Client();
+  http.Client get _client => ProxyHttp.forScope(ProxyScope.tools);
 
   static const toolDefs = <Map<String, Object>>[
     {

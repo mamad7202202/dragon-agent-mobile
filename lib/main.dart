@@ -9,7 +9,7 @@ import 'core/theme.dart';
 import 'state/app_state.dart';
 import 'ui/screens/home_shell.dart';
 import 'ui/screens/setup_wizard.dart';
-import 'ui/widgets/flame_logo.dart';
+import 'ui/widgets/dragon_mark.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,15 +88,10 @@ class _Splash extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const FlameLogo(size: 84)
+            const DragonAscii(fontSize: 6.4, softFade: false)
                 .animate(onPlay: (c) => c.repeat(reverse: true))
-                .scale(
-                  begin: const Offset(0.96, 0.96),
-                  end: const Offset(1.04, 1.04),
-                  duration: 1200.ms,
-                  curve: Curves.easeInOut,
-                ),
-            const SizedBox(height: 20),
+                .fade(begin: 0.7, end: 1.0, duration: 1400.ms),
+            const SizedBox(height: 22),
             Text('Dragon Agent',
                 style: Theme.of(context)
                     .textTheme
@@ -131,8 +126,7 @@ class _FatalErrorScreen extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.local_fire_department_rounded,
-                        color: DragonColors.ember, size: 28),
+                    DragonMonogram(size: 28),
                     SizedBox(width: 10),
                     Text('Dragon hit an error',
                         style: TextStyle(

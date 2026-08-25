@@ -14,6 +14,7 @@ import '../data/models.dart';
 import '../data/sessions.dart';
 import '../services/cloudflare_api.dart';
 import '../services/github_api.dart';
+import '../services/proxy_service.dart';
 import '../services/skills.dart';
 import '../services/update_service.dart';
 
@@ -222,6 +223,7 @@ class AppState extends ChangeNotifier {
   String activeProvider = '';
   String activeModel = '';
   Settings settings = Settings();
+  ProxyConfig proxy = ProxyConfig();
 
   // session
   SessionData? current;
@@ -229,8 +231,11 @@ class AppState extends ChangeNotifier {
 
   // streaming state
   bool busy = false;
-  String? liveText;
-  String? liveThinking;
+
+  /// Live streaming snapshot — a ValueNotifier so per-token updates rebuild
+  /// only the live bubble, never the whole chat list.
+  final ValueNotifier<({String text, String thinking})?> live =
+      ValueNotifier(null);
 
   // approvals
   ApprovalRequest? pendingApproval;
@@ -339,6 +344,15 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
     }
 
+    final rawProxy = _prefs.getString('proxy_cfg');
+    if (rawProxy != null) {
+      try {
+        proxy = ProxyConfig.fromJson(
+            Map<String, dynamic>.from(jsonDecode(rawProxy) as Map));
+      } catch (_) {}
+    }
+    ProxyHttp.update(proxy);
+
     try {
       appVersion = await _updates.currentVersion();
     } catch (_) {}
@@ -406,6 +420,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> saveProxy(ProxyConfig c) async {
+    proxy = c;
+    ProxyHttp.update(c);
+    await _prefs.setString('proxy_cfg', jsonEncode(c.toJson()));
+    notifyListeners();
+  }
+
   Future<void> resetEverything() async {
     await _prefs.clear();
     memory.clear();
@@ -469,8 +490,7 @@ class AppState extends ChangeNotifier {
     if (busy) return;
     current = await sessions.create();
     bubbles = [];
-    liveText = null;
-    liveThinking = null;
+    live.value = null;
     notifyListeners();
   }
 
@@ -613,17 +633,8 @@ class AppState extends ChangeNotifier {
   Future<void> runTurn() async {
     final session = current!;
     busy = true;
-    liveText = null;
-    liveThinking = null;
-    var lastNotify = DateTime.fromMillisecondsSinceEpoch(0);
-
-    void throttledNotify() {
-      final now = DateTime.now();
-      if (now.difference(lastNotify).inMilliseconds >= 60) {
-        lastNotify = now;
-        notifyListeners();
-      }
-    }
+    live.value = null;
+    notifyListeners();
 
     try {
       for (var round = 0; round < 5; round++) {
@@ -646,12 +657,16 @@ class AppState extends ChangeNotifier {
             switch (e) {
               case DeltaText():
                 assistantBuf.write(e.text);
-                liveText = assistantBuf.toString();
-                throttledNotify();
+                live.value = (
+                  text: assistantBuf.toString(),
+                  thinking: thinkingBuf.toString()
+                );
               case DeltaThinking():
                 thinkingBuf.write(e.text);
-                liveThinking = thinkingBuf.toString();
-                throttledNotify();
+                live.value = (
+                  text: assistantBuf.toString(),
+                  thinking: thinkingBuf.toString()
+                );
               case UsageReported():
                 usage = e.usage;
               case ToolRequested():
@@ -659,6 +674,7 @@ class AppState extends ChangeNotifier {
             }
           },
         );
+        live.value = null;
 
         final text = assistantBuf.toString().trim();
         final thinking = thinkingBuf.toString().trim();
@@ -760,8 +776,7 @@ class AppState extends ChangeNotifier {
       ];
     } finally {
       busy = false;
-      liveText = null;
-      liveThinking = null;
+      live.value = null;
       activeSkill = null; // skills apply to one message
       notifyListeners();
     }
@@ -1156,7 +1171,9 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    live.dispose();
     _llm.dispose();
+    ProxyHttp.dispose();
     _updates.dispose();
     _connectivitySub?.cancel();
     super.dispose();

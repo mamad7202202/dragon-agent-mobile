@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 import '../core/presets.dart';
+import '../services/proxy_service.dart';
 import 'models.dart';
 
 /// Deep-thinking (reasoning) effort level.
@@ -228,9 +229,12 @@ const extraToolDefs = [
 ];
 
 class LlmClient {
-  final http.Client _http = http.Client();
+  /// Every request resolves its client at call time, so proxy edits apply
+  /// immediately and per-provider scoping stays correct.
+  static http.Client _clientFor(ProviderCfg cfg) =>
+      ProxyHttp.forScope(ProxyScope.ai, provider: cfg.name);
 
-  void dispose() => _http.close();
+  void dispose() {}
 
   // ------------------------------------------------------------------
   // Streaming turn
@@ -269,6 +273,7 @@ class LlmClient {
     final buf = StringBuffer();
     if (cfg.protocol == Protocol.anthropic) {
       final res = await _post(
+        cfg,
         '${_trim(cfg.baseUrl)}/messages',
         headers: {
           'x-api-key': cfg.apiKey,
@@ -292,6 +297,7 @@ class LlmClient {
     }
 
     final res = await _post(
+      cfg,
       '${_trim(cfg.baseUrl)}/chat/completions',
       headers: _openAIHeaders(cfg),
       body: jsonEncode({
@@ -407,7 +413,7 @@ class LlmClient {
       ..headers.addAll(_openAIHeaders(cfg))
       ..body = jsonEncode(body);
 
-    final res = await _http.send(req);
+    final res = await _clientFor(cfg).send(req);
     if (res.statusCode != 200) {
       throw LlmException(await _errorText(res, 'OpenAI'));
     }
@@ -621,7 +627,7 @@ class LlmClient {
       })
       ..body = jsonEncode(body);
 
-    final res = await _http.send(req);
+    final res = await _clientFor(cfg).send(req);
     if (res.statusCode != 200) {
       throw LlmException(await _errorText(res, 'Anthropic'));
     }
@@ -708,11 +714,13 @@ class LlmClient {
   }
 
   Future<List<int>> _post(
+    ProviderCfg cfg,
     String url, {
     required Map<String, String> headers,
     required String body,
   }) async {
-    final res = await _http.post(Uri.parse(url), headers: headers, body: body);
+    final res = await _clientFor(cfg)
+        .post(Uri.parse(url), headers: headers, body: body);
     if (res.statusCode != 200) {
       String msg;
       try {

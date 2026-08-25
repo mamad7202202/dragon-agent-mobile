@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dragon_agent_mobile/core/theme.dart';
 import 'package:dragon_agent_mobile/data/models.dart';
 import 'package:dragon_agent_mobile/ui/screens/setup_wizard.dart';
-import 'package:dragon_agent_mobile/ui/widgets/flame_logo.dart';
+import 'package:dragon_agent_mobile/ui/widgets/dragon_mark.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -27,15 +27,26 @@ void main() {
     expect(title, 'what can you do for me today?');
   });
 
-  testWidgets('FlameLogo paints without crashing', (tester) async {
+  testWidgets('DragonAscii and DragonMonogram build without crashing',
+      (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildDragonTheme(Brightness.dark),
-        home: const Scaffold(body: Center(child: FlameLogo(size: 48))),
+        home: const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DragonAscii(fontSize: 7),
+                SizedBox(height: 8),
+                DragonMonogram(size: 24),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-    // MaterialApp itself contributes CustomPaints; assert at least ours exists.
-    expect(find.byType(CustomPaint), findsWidgets);
+    expect(find.text('DR'), findsOneWidget);
   });
 
   testWidgets('SetupWizard renders with no provider selected (regression: '

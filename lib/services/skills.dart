@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../data/memory.dart';
+import 'proxy_service.dart';
 
 /// One imported SKILL.md.
 class LoadedSkill {
@@ -62,7 +63,8 @@ class SkillHit {
 /// Finds SKILL.md files in trusted GitHub sources, imports them into the app
 /// and keeps them on device.
 class SkillStore extends ChangeNotifier {
-  final http.Client _http = http.Client();
+  /// Skills come from GitHub sources — treated as integration traffic.
+  http.Client get _http => ProxyHttp.forScope(ProxyScope.tools);
 
   /// Trusted open-source sources — Anthropic's official skills repo first.
   final List<String> sources = ['anthropics/skills'];
@@ -229,7 +231,6 @@ class SkillStore extends ChangeNotifier {
 
   @override
   void dispose() {
-    _http.close();
     super.dispose();
   }
 }
