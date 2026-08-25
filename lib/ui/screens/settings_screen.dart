@@ -522,8 +522,6 @@ class _CardTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  final Widget? content;
-  final EdgeInsets padding;
   final bool isLast;
 
   const _CardTile({
@@ -532,8 +530,6 @@ class _CardTile extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
-    this.content,
-    this.padding = const EdgeInsets.all(14),
     this.isLast = false,
   });
 
@@ -547,7 +543,7 @@ class _CardTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: padding.copyWith(left: 18, right: 18),
+          padding: const EdgeInsets.all(14).copyWith(left: 18, right: 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -581,7 +577,6 @@ class _CardTile extends StatelessWidget {
                   ),
                 ),
               ],
-              if (content != null) content!,
               if (isLast) const SizedBox(height: 2),
             ],
           ),

@@ -59,7 +59,8 @@ class _ChatViewState extends State<ChatView> {
       children: [
         if (bubbles.isEmpty)
           _EmptyState(openMemories: widget.openMemories)
-        : GestureDetector(
+        else
+          GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             child: Align(
               alignment: Alignment.topCenter,
